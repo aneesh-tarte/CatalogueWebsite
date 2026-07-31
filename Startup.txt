@@ -1,6 +1,0 @@
-node src/server.js           //backend
-
-python -m http.server 8000   //frontend
-
-
-OjPIbw08l2LZFQuI //databse password
