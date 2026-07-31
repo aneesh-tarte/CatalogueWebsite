@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalogue Dashboard</title>
+    <meta name="description" content="Your personal catalog for tracking media items securely.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="brand">
+            <h1>Catalogue</h1>
+        </div>
+        <div class="search-container">
+            <select id="search-type" class="search-dropdown">
+                <option value="ANIME">Anime</option>
+                <option value="GAME">Video Games</option>
+                <option value="MANGA">Manga</option>
+                <option value="MOVIE">Movies</option>
+            </select>
+            <input type="text" id="global-search" placeholder="Search catalog..." autocomplete="off" />
+            <div id="search-results" class="search-results hidden"></div>
+        </div>
+        <div class="user-profile">
+            <button class="btn btn-primary" id="auth-btn">Sign In</button>
+        </div>
+    </header>
+
+    <main class="dashboard-layout">
+        <section class="library-section">
+            <header class="section-header">
+                <h2>Your Tracking Library</h2>
+            </header>
+            
+            <nav class="library-tabs">
+                <button class="tab-btn active" data-status="In Progress">In Progress</button>
+                <button class="tab-btn" data-status="Plan to Track">Plan to Track</button>
+                <button class="tab-btn" data-status="Completed">Completed</button>
+                <button class="tab-btn" data-status="Dropped">Dropped</button>
+            </nav>
+
+            <div class="library-content" id="library-content">
+                <div class="loader">Loading library...</div>
+            </div>
+        </section>
+
+        <aside class="news-section">
+            <header class="section-header">
+                <h2>Industry News</h2>
+            </header>
+            <div class="news-stream" id="news-stream">
+                <div class="loader">Fetching latest news...</div>
+            </div>
+        </aside>
+    </main>
+
+    <script src="./app.js"></script>
+</body>
+</html>
