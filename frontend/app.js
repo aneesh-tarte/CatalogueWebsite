@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailsRelease = document.getElementById('details-release');
     const detailsSynopsis = document.getElementById('details-synopsis');
     const detailsAddBtn = document.getElementById('details-add-btn');
+    const detailsNewsBtn = document.getElementById('details-news-btn');
 
     // State
     let currentTab = 'In Progress';
@@ -213,6 +214,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 detailsAddBtn.disabled = false;
             }
         });
+
+        detailsNewsBtn.addEventListener('click', () => {
+            if (!currentSelectedMedia) return;
+            const query = encodeURIComponent(`${currentSelectedMedia.title} ${currentSelectedMedia.type.toLowerCase()}`);
+            window.open(`https://news.google.com/search?q=${query}`, '_blank');
+        });
     }
 
     function openAuthModal() {
@@ -278,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     detailsTitle.textContent = item.title || 'Unknown Title';
                     detailsType.textContent = item.type || item.mediaType || 'Media';
                     detailsRelease.textContent = item.releaseDate ? new Date(item.releaseDate).getFullYear() : 'Unknown Year';
-                    detailsSynopsis.textContent = item.synopsis || item.description || 'No description available.';
+                    detailsSynopsis.innerHTML = item.synopsis || item.description || 'No description available.';
 
                     detailsModal.classList.remove('hidden');
                     searchResults.classList.add('hidden');
