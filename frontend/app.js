@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Configuration
-    const API_BASE = 'http://localhost:3000/api'; // Adjust for production
-    
+    const API_BASE = 'https://catalogue-website-ten.vercel.app/api'; // Adjust for production
+
     // DOM Elements
     const searchInput = document.getElementById('global-search');
     const searchResults = document.getElementById('search-results');
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 const query = e.target.value.trim();
-                
+
                 if (query.length < 3) {
                     searchResults.classList.add('hidden');
                     return;
@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const searchType = document.getElementById('search-type')?.value || 'ANIME';
             const response = await fetch(`${API_BASE}/catalog/search?q=${encodeURIComponent(query)}&type=${searchType}`);
             if (!response.ok) throw new Error('Search failed');
-            
+
             const data = await response.json();
             const resultsArray = data.data || data;
             renderSearchResults(resultsArray);
@@ -138,13 +138,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (response.ok) {
                             searchResults.classList.add('hidden');
                             searchInput.value = '';
-                            
+
                             // Automatically switch to 'Plan to Track' and refresh
                             currentTab = 'Plan to Track';
                             tabBtns.forEach(t => t.classList.remove('active'));
                             const activeTabBtn = Array.from(tabBtns).find(btn => btn.getAttribute('data-status') === currentTab);
                             if (activeTabBtn) activeTabBtn.classList.add('active');
-                            
+
                             await fetchLibrary();
                         } else {
                             const errData = await response.json().catch(() => ({}));
@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
             newsStream.innerHTML = `<div class="loader">No recent news.</div>`;
             return;
         }
-        
+
         newsStream.innerHTML = newsItems.map(item => `
             <article class="news-card">
                 <div class="news-meta">
@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 throw new Error('Failed to fetch library');
             }
-            
+
             const data = await response.json();
             libraryData = data.library || [];
             renderLibrary();
@@ -249,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         const mappedStatus = tabToStatusMap[currentTab];
         const filtered = libraryData.filter(item => item.status === mappedStatus || item.trackStatus === currentTab);
-        
+
         if (filtered.length === 0) {
             libraryContent.innerHTML = `<div class="loader">No items in ${currentTab}.</div>`;
             return;
@@ -298,14 +298,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) throw new Error('Update failed');
-            
+
             // Update local state
             const item = libraryData.find(i => i.id === itemId || i._id === itemId);
             if (item) item.progress = newProgress;
-            
+
             btn.textContent = 'Saved!';
             setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
-            
+
         } catch (error) {
             console.error('Progress update error:', error);
             btn.textContent = 'Error';
