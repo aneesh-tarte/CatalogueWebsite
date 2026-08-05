@@ -22,10 +22,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const authSwitchLink = document.getElementById('auth-switch-link');
     const authSwitchText = document.getElementById('auth-switch-text');
 
+    const detailsModal = document.getElementById('details-modal');
+    const closeDetailsModal = document.getElementById('close-details-modal');
+    const detailsImage = document.getElementById('details-image');
+    const detailsTitle = document.getElementById('details-title');
+    const detailsType = document.getElementById('details-type');
+    const detailsRelease = document.getElementById('details-release');
+    const detailsSynopsis = document.getElementById('details-synopsis');
+    const detailsAddBtn = document.getElementById('details-add-btn');
+
     // State
     let currentTab = 'In Progress';
     let libraryData = []; // Will hold the user's library
     let authToken = localStorage.getItem('token') || null;
+    let currentSearchResults = [];
+    let currentSelectedMedia = null;
 
     // Initialize
     init();
@@ -143,6 +154,65 @@ document.addEventListener('DOMContentLoaded', () => {
                 authSubmitBtn.disabled = false;
             }
         });
+
+        // Details Modal
+        function closeDetailsModalFunc() {
+            detailsModal.classList.add('hidden');
+            currentSelectedMedia = null;
+        }
+
+        closeDetailsModal.addEventListener('click', closeDetailsModalFunc);
+        window.addEventListener('click', (e) => {
+            if (e.target === detailsModal) closeDetailsModalFunc();
+        });
+
+        detailsAddBtn.addEventListener('click', async () => {
+            if (!authToken) {
+                closeDetailsModalFunc();
+                openAuthModal();
+                return;
+            }
+
+            if (!currentSelectedMedia) return;
+
+            const originalText = detailsAddBtn.textContent;
+            detailsAddBtn.textContent = 'Adding...';
+            detailsAddBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE}/library`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(currentSelectedMedia)
+                });
+
+                if (response.ok) {
+                    searchInput.value = '';
+                    closeDetailsModalFunc();
+
+                    // Automatically switch to 'Plan to Track' and refresh
+                    currentTab = 'Plan to Track';
+                    tabBtns.forEach(t => t.classList.remove('active'));
+                    const activeTabBtn = Array.from(tabBtns).find(btn => btn.getAttribute('data-status') === currentTab);
+                    if (activeTabBtn) activeTabBtn.classList.add('active');
+
+                    await fetchLibrary();
+                } else {
+                    const errData = await response.json().catch(() => ({}));
+                    console.error('Failed to add item:', errData);
+                    alert("Failed to add item: " + (errData.error || response.statusText));
+                }
+            } catch (error) {
+                console.error('Error adding item:', error);
+                alert("Network error while adding item.");
+            } finally {
+                detailsAddBtn.textContent = originalText;
+                detailsAddBtn.disabled = false;
+            }
+        });
     }
 
     function openAuthModal() {
@@ -174,6 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderSearchResults(results) {
+        currentSearchResults = results || [];
         if (!results || !Array.isArray(results) || results.length === 0) {
             searchResults.innerHTML = `<div class="search-item">No results found.</div>`;
         } else {
@@ -185,55 +256,32 @@ document.addEventListener('DOMContentLoaded', () => {
                      data-type="${item.mediaType || item.type || 'ANIME'}" 
                      data-image="${item.image || item.coverImage || item.coverImageUrl || ''}">
                     <strong>${item.title || 'Unknown Title'}</strong>
-                    <small>${item.mediaType || item.type || 'Media'} • ${item.year || ''}</small>
+                    <small>${item.mediaType || item.type || 'Media'} • ${item.releaseDate ? new Date(item.releaseDate).getFullYear() : (item.year || '')}</small>
                 </div>
             `).join('');
 
             document.querySelectorAll('.clickable-result').forEach(el => {
                 el.addEventListener('click', async (e) => {
                     const target = e.currentTarget;
-                    const payload = {
-                        apiId: target.getAttribute('data-id'),
-                        title: target.getAttribute('data-title'),
-                        type: target.getAttribute('data-type'),
-                        imageUrl: target.getAttribute('data-image')
+                    const id = target.getAttribute('data-id');
+                    const item = currentSearchResults.find(i => (i.id || i.apiId || i.externalId) == id);
+                    if (!item) return;
+
+                    currentSelectedMedia = {
+                        apiId: id,
+                        title: item.title,
+                        type: item.type || item.mediaType || 'ANIME',
+                        imageUrl: item.coverImageUrl || item.image || item.coverImage
                     };
 
-                    if (!authToken) {
-                        alert("Please Sign In to add items to your library.");
-                        return;
-                    }
+                    detailsImage.src = item.coverImageUrl || item.image || item.coverImage || 'https://via.placeholder.com/200x300';
+                    detailsTitle.textContent = item.title || 'Unknown Title';
+                    detailsType.textContent = item.type || item.mediaType || 'Media';
+                    detailsRelease.textContent = item.releaseDate ? new Date(item.releaseDate).getFullYear() : 'Unknown Year';
+                    detailsSynopsis.textContent = item.synopsis || item.description || 'No description available.';
 
-                    try {
-                        const response = await fetch(`${API_BASE}/library`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${authToken}`
-                            },
-                            body: JSON.stringify(payload)
-                        });
-
-                        if (response.ok) {
-                            searchResults.classList.add('hidden');
-                            searchInput.value = '';
-
-                            // Automatically switch to 'Plan to Track' and refresh
-                            currentTab = 'Plan to Track';
-                            tabBtns.forEach(t => t.classList.remove('active'));
-                            const activeTabBtn = Array.from(tabBtns).find(btn => btn.getAttribute('data-status') === currentTab);
-                            if (activeTabBtn) activeTabBtn.classList.add('active');
-
-                            await fetchLibrary();
-                        } else {
-                            const errData = await response.json().catch(() => ({}));
-                            console.error('Failed to add item:', errData);
-                            alert("Failed to add item: " + (errData.error || response.statusText));
-                        }
-                    } catch (error) {
-                        console.error('Error adding item:', error);
-                        alert("Network error while adding item.");
-                    }
+                    detailsModal.classList.remove('hidden');
+                    searchResults.classList.add('hidden');
                 });
             });
         }
