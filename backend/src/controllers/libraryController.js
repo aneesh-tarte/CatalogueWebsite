@@ -12,6 +12,7 @@ const getLibrary = async (req, res) => {
     res.json({ library });
   } catch (error) {
     console.error('Library get error:', error.stack);
+    console.error("Route /api/library Error:", error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -52,6 +53,7 @@ const updateLibrary = async (req, res) => {
     res.json({ data: libraryEntry });
   } catch (error) {
     console.error('Library update error:', error.stack);
+    console.error("Route /api/library/update Error:", error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -67,6 +69,7 @@ const deleteLibraryItem = async (req, res) => {
     res.json({ message: 'Deleted' });
   } catch (error) {
     console.error('Library delete error:', error.stack);
+    console.error("Route /api/library/:id Error:", error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -114,6 +117,7 @@ const addLibraryItem = async (req, res) => {
     res.status(200).json({ data: libraryEntry });
   } catch (error) {
     console.error('Library add error:', error.stack);
+    console.error("Route /api/library Error:", error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

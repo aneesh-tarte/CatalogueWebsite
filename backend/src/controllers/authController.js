@@ -25,6 +25,7 @@ const register = async (req, res) => {
     res.status(201).json({ token, user: { id: user.id, email: user.email } });
   } catch (error) {
     console.error('Registration error:', error.stack);
+    console.error("Route /api/auth/register Error:", error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -51,6 +52,7 @@ const login = async (req, res) => {
     res.json({ token, user: { id: user.id, email: user.email } });
   } catch (error) {
     console.error('Login error:', error.stack);
+    console.error("Route /api/auth/login Error:", error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
