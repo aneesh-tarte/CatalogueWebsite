@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const routes = require('./routes');
 const NewsSyncJob = require('./services/NewsSyncJob');
 
@@ -13,6 +14,14 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use('/api', routes);
+
+// Serve static frontend files
+app.use(express.static(path.join(__dirname, '../../frontend')));
+
+// Fallback route for SPA
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../../frontend/index.html'));
+});
 
 NewsSyncJob.start();
 
