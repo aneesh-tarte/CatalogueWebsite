@@ -1,8 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
 const routes = require('./routes');
 const NewsSyncJob = require('./services/NewsSyncJob');
 
@@ -15,15 +13,6 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use('/api', routes);
-
-// Safely serve static frontend files if they exist in the bundle
-const frontendPath = path.join(__dirname, '../../frontend');
-if (fs.existsSync(frontendPath)) {
-    app.use(express.static(frontendPath));
-    app.get('*', (req, res) => {
-        res.sendFile(path.join(frontendPath, 'index.html'));
-    });
-}
 
 NewsSyncJob.start();
 
