@@ -56,6 +56,27 @@
         </aside>
     </main>
 
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal" id="close-auth-modal">&times;</span>
+            <h2 id="auth-modal-title">Sign In</h2>
+            <form id="auth-form">
+                <div class="form-group">
+                    <label for="auth-email">Email</label>
+                    <input type="email" id="auth-email" required placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="auth-password">Password</label>
+                    <input type="password" id="auth-password" required placeholder="Enter your password">
+                </div>
+                <div id="auth-error" class="error-msg hidden"></div>
+                <button type="submit" class="btn btn-primary full-width" id="auth-submit-btn">Sign In</button>
+            </form>
+            <p class="auth-switch"><span id="auth-switch-text">Need an account?</span> <a href="#" id="auth-switch-link">Register</a></p>
+        </div>
+    </div>
+
     <script src="./app.js"></script>
 </body>
 </html>

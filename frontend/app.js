@@ -9,6 +9,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const libraryContent = document.getElementById('library-content');
     const newsStream = document.getElementById('news-stream');
     const authBtn = document.getElementById('auth-btn');
+    
+    // Modal Elements
+    const authModal = document.getElementById('auth-modal');
+    const closeAuthModal = document.getElementById('close-auth-modal');
+    const authForm = document.getElementById('auth-form');
+    const authEmail = document.getElementById('auth-email');
+    const authPassword = document.getElementById('auth-password');
+    const authError = document.getElementById('auth-error');
+    const authSubmitBtn = document.getElementById('auth-submit-btn');
+    const authModalTitle = document.getElementById('auth-modal-title');
+    const authSwitchLink = document.getElementById('auth-switch-link');
+    const authSwitchText = document.getElementById('auth-switch-text');
 
     // State
     let currentTab = 'In Progress';
@@ -62,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Auth Button (Placeholder logic)
+        // Auth Button
         authBtn.addEventListener('click', () => {
             if (authToken) {
                 localStorage.removeItem('token');
@@ -71,10 +83,77 @@ document.addEventListener('DOMContentLoaded', () => {
                 libraryData = [];
                 libraryContent.innerHTML = `<div class="loader">Please Sign In to view your library.</div>`;
             } else {
-                // In a real app, this would redirect to /login or open a modal
-                alert('Authentication flow would trigger here. (Check DEPLOYMENT.md for details)');
+                openAuthModal();
             }
         });
+
+        // Modal close
+        closeAuthModal.addEventListener('click', closeAuthModalFunc);
+        window.addEventListener('click', (e) => {
+            if (e.target === authModal) closeAuthModalFunc();
+        });
+
+        // Switch Auth Mode
+        let isLogin = true;
+        authSwitchLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            isLogin = !isLogin;
+            authModalTitle.textContent = isLogin ? 'Sign In' : 'Register';
+            authSubmitBtn.textContent = isLogin ? 'Sign In' : 'Register';
+            authSwitchText.textContent = isLogin ? 'Need an account?' : 'Already have an account?';
+            authSwitchLink.textContent = isLogin ? 'Register' : 'Sign In';
+            authError.classList.add('hidden');
+        });
+
+        // Handle Auth Submit
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            authError.classList.add('hidden');
+            const email = authEmail.value;
+            const password = authPassword.value;
+            const endpoint = isLogin ? '/auth/login' : '/auth/register';
+
+            const originalText = authSubmitBtn.textContent;
+            authSubmitBtn.textContent = 'Processing...';
+            authSubmitBtn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Authentication failed');
+                }
+
+                authToken = data.token;
+                localStorage.setItem('token', authToken);
+                closeAuthModalFunc();
+                authBtn.textContent = 'Sign Out';
+                fetchLibrary();
+            } catch (err) {
+                authError.textContent = err.message;
+                authError.classList.remove('hidden');
+            } finally {
+                authSubmitBtn.textContent = originalText;
+                authSubmitBtn.disabled = false;
+            }
+        });
+    }
+
+    function openAuthModal() {
+        authModal.classList.remove('hidden');
+        authEmail.value = '';
+        authPassword.value = '';
+        authError.classList.add('hidden');
+    }
+
+    function closeAuthModalFunc() {
+        authModal.classList.add('hidden');
     }
 
     // --- Search Module ---
