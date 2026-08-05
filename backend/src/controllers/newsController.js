@@ -12,7 +12,7 @@ const getNews = async (req, res) => {
   } catch (error) {
     console.error('News feed error:', error.stack);
     console.error("Route /api/news Error:", error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: error.message, stack: error.stack });
   }
 };
 
