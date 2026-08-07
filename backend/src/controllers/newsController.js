@@ -1,9 +1,11 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient({});
+const NewsSyncJob = require('../services/NewsSyncJob');
 
 const getNews = async (req, res) => {
   try {
     console.log(`[GET] /api/news`);
+    await NewsSyncJob.runSync();
     const news = await prisma.newsArticle.findMany({
       orderBy: { publishedAt: 'desc' },
       take: 50

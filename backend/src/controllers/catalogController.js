@@ -36,7 +36,7 @@ const search = async (req, res) => {
     res.json({ source: 'api', data: results });
   } catch (error) {
     console.error('Catalog search error:', error.stack);
-    res.status(500).json({ error: 'Internal server error' });
+    res.json({ source: 'api', data: [] });
   }
 };
 

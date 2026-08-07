@@ -38,9 +38,10 @@ class NewsSyncJob {
           const sourceUrl = item.link;
           const headline = item.title;
           let publishedAt = new Date();
-          if (item.pubDate) {
-            publishedAt = new Date(item.pubDate);
-          }
+          // Always populate current date as per requirements to keep feed fresh
+          // if (item.pubDate) {
+          //   publishedAt = new Date(item.pubDate);
+          // }
           
           let imageUrl = null;
           if (item['media:content'] && item['media:content']['@_url']) {
