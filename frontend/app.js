@@ -236,8 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Search Module ---
     async function performSearch(query) {
         try {
-            const searchType = document.getElementById('search-type')?.value || 'ANIME';
-            const response = await fetch(`${API_BASE}/catalog/search?q=${encodeURIComponent(query)}&type=${searchType}`);
+            const response = await fetch(`${API_BASE}/catalog/search?q=${encodeURIComponent(query)}`);
             if (!response.ok) throw new Error('Search failed');
 
             const data = await response.json();

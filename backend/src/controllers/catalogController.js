@@ -5,15 +5,14 @@ const prisma = new PrismaClient({});
 
 const search = async (req, res) => {
   try {
-    console.log(`[GET] /api/catalog/search - Query: q=${req.query.q}, type=${req.query.type}`);
-    const { q, type } = req.query;
-    if (!q || !type) {
-      return res.status(400).json({ error: 'Query (q) and type are required' });
+    console.log(`[GET] /api/catalog/search - Query: q=${req.query.q}`);
+    const { q } = req.query;
+    if (!q) {
+      return res.status(400).json({ error: 'Query (q) is required' });
     }
 
-    const cachedItems = await prisma.mediaItem.findMany({
+    const cachedItemsPromise = prisma.mediaItem.findMany({
       where: {
-        type: type,
         title: {
           contains: q,
           mode: 'insensitive'
@@ -22,18 +21,25 @@ const search = async (req, res) => {
       take: 10
     });
 
-    if (cachedItems.length > 0) {
-      return res.json({ source: 'cache', data: cachedItems });
-    }
+    const [cachedItems, games, anime, manga] = await Promise.all([
+      cachedItemsPromise,
+      IGDBGameService.searchGames(q).catch(e => { console.error('IGDB Error:', e); return []; }),
+      AniListService.searchMedia(q, 'ANIME').catch(e => { console.error('AniList Anime Error:', e); return []; }),
+      AniListService.searchMedia(q, 'MANGA').catch(e => { console.error('AniList Manga Error:', e); return []; })
+    ]);
 
-    let results = [];
-    if (type === 'GAME') {
-      results = await IGDBGameService.searchGames(q);
-    } else if (type === 'ANIME' || type === 'MANGA') {
-      results = await AniListService.searchMedia(q, type);
+    const combinedResults = [...cachedItems, ...games, ...anime, ...manga];
+    const uniqueResultsMap = new Map();
+    for (const item of combinedResults) {
+      const key = `${item.type}-${item.externalId}`;
+      if (!uniqueResultsMap.has(key)) {
+        uniqueResultsMap.set(key, item);
+      }
     }
+    
+    const finalResults = Array.from(uniqueResultsMap.values()).slice(0, 20);
 
-    res.json({ source: 'api', data: results });
+    res.json({ source: 'api', data: finalResults });
   } catch (error) {
     console.error('Catalog search error:', error.stack);
     res.json({ source: 'api', data: [] });
