@@ -54,19 +54,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setupEventListeners() {
-        // Search on Enter Key
-        searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const query = e.target.value.trim();
+        // Live Search as you type with Debounce
+        function debounce(func, delay) {
+            let timeoutId;
+            return function (...args) {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
 
-                if (query.length < 3) {
-                    searchResults.classList.add('hidden');
-                    return;
-                }
+        const debouncedSearch = debounce((query) => {
+            performSearch(query);
+        }, 400); // 400ms delay
 
-                performSearch(query);
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+            
+            if (query === '') {
+                searchResults.innerHTML = '';
+                searchResults.classList.add('hidden');
+                return;
             }
+
+            // Show loading state while waiting for debounce and fetch
+            searchResults.innerHTML = `<div class="search-item">Searching...</div>`;
+            searchResults.classList.remove('hidden');
+            
+            debouncedSearch(query);
         });
 
         // Close search results on outside click
