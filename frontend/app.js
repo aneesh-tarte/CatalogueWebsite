@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const API_BASE = 'https://catalogue-website-backend.vercel.app/api'; // Production backend
+    const API_BASE = 'https://catalogue-website-ten.vercel.app/api'; // Production backend
 
     // DOM Elements
     const searchInput = document.getElementById('global-search');
