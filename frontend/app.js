@@ -420,7 +420,8 @@ document.addEventListener('DOMContentLoaded', () => {
         newsCarousel.innerHTML = newsItems.map(item => {
             const bgImage = item.imageUrl || item.image || 'https://via.placeholder.com/350x200/3b82f6/ffffff?text=News';
             return `
-            <a href="${item.sourceUrl || item.url}" target="_blank" class="news-hero-card" style="background-image: url('${bgImage}')">
+            <a href="${item.sourceUrl || item.url}" target="_blank" class="news-hero-card">
+                <img src="${bgImage}" alt="${item.headline || item.title}" class="news-hero-image" />
                 <div class="news-hero-overlay">
                     <div class="news-hero-meta">
                         <span>${item.publisher || item.source}</span>
