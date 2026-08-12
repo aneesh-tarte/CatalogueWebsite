@@ -548,3 +548,135 @@ body {
         flex-direction: column;
     }
 }
+
+/* Reviews Section */
+.details-reviews-section {
+    margin-top: 3rem;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
+
+.reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.review-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+}
+
+.review-meta {
+    font-size: 0.9rem;
+    color: var(--accent-primary);
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.review-text {
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+/* Comments Section */
+.details-comments-section {
+    margin-top: 3rem;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
+
+.comment-form-container, .reply-form-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.reply-form-container {
+    margin-top: 0.5rem;
+}
+
+#new-comment-input, .reply-input {
+    width: 100%;
+    min-height: 80px;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+    background: rgba(15, 23, 42, 0.6);
+    color: var(--text-primary);
+    font-size: 1rem;
+    outline: none;
+    font-family: inherit;
+    resize: vertical;
+}
+
+#new-comment-input:focus, .reply-input:focus {
+    border-color: var(--accent-vibrant);
+}
+
+#submit-comment-btn, .submit-reply-btn {
+    align-self: flex-end;
+}
+
+.comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.comment-thread {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.comment-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.comment-reply {
+    margin-left: 2rem;
+    border-left: 2px solid var(--border-color);
+    border-radius: 0 0.5rem 0.5rem 0;
+    padding-left: 1rem;
+}
+
+.comment-meta {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.comment-meta strong {
+    color: var(--accent-vibrant);
+}
+
+.comment-text {
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+    line-height: 1.5;
+}
+
+.reply-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: color var(--transition-speed);
+}
+
+.reply-btn:hover {
+    color: var(--text-primary);
+}

@@ -46,4 +46,112 @@ const search = async (req, res) => {
   }
 };
 
-module.exports = { search };
+const getReviews = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const reviews = await prisma.userLibrary.findMany({
+      where: {
+        mediaItemId: id,
+        reviewText: {
+          not: null
+        }
+      },
+      include: {
+        user: {
+          select: {
+            email: true
+          }
+        }
+      }
+    });
+
+    const aggregations = await prisma.userLibrary.aggregate({
+      where: {
+        mediaItemId: id,
+        personalScore: {
+          not: null
+        }
+      },
+      _avg: {
+        personalScore: true
+      }
+    });
+
+    const averageScore = aggregations._avg.personalScore;
+
+    res.json({
+      averageScore,
+      reviews
+    });
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
+    res.status(500).json({ error: 'Failed to fetch reviews' });
+  }
+};
+
+const createComment = async (req, res) => {
+  try {
+    const { userId } = req.user;
+    const { id } = req.params;
+    const { content, parentId } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required' });
+    }
+
+    const comment = await prisma.comment.create({
+      data: {
+        content,
+        authorId: userId,
+        mediaItemId: id,
+        parentId: parentId || null
+      },
+      include: {
+        author: {
+          select: { email: true }
+        }
+      }
+    });
+
+    res.status(201).json({ data: comment });
+  } catch (error) {
+    console.error('Create comment error:', error);
+    res.status(500).json({ error: 'Failed to create comment' });
+  }
+};
+
+const getComments = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const comments = await prisma.comment.findMany({
+      where: {
+        mediaItemId: id,
+        parentId: null // top-level comments
+      },
+      include: {
+        author: {
+          select: { email: true }
+        },
+        replies: {
+          include: {
+            author: {
+              select: { email: true }
+            }
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    res.json({ data: comments });
+  } catch (error) {
+    console.error('Get comments error:', error);
+    res.status(500).json({ error: 'Failed to fetch comments' });
+  }
+};
+
+module.exports = { search, getReviews, createComment, getComments };

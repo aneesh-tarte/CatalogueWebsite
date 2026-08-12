@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Configuration
-    const API_BASE = 'https://catalogue-website-ten.vercel.app/api'; // Adjust for production
+    const API_BASE = 'http://localhost:3000/api'; // Adjust for production
 
     // DOM Elements
     const searchInput = document.getElementById('global-search');
@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let authToken = localStorage.getItem('token') || null;
     let currentSearchResults = [];
     let currentSelectedMedia = null;
+    let currentSelectedId = null;
 
     // Initialize
     init();
@@ -234,6 +235,46 @@ document.addEventListener('DOMContentLoaded', () => {
             const query = encodeURIComponent(`${currentSelectedMedia.title} ${currentSelectedMedia.type.toLowerCase()}`);
             window.open(`https://news.google.com/search?q=${query}`, '_blank');
         });
+
+        const submitCommentBtn = document.getElementById('submit-comment-btn');
+        const newCommentInput = document.getElementById('new-comment-input');
+        
+        submitCommentBtn.addEventListener('click', async () => {
+            if (!authToken) {
+                openAuthModal();
+                return;
+            }
+            const content = newCommentInput.value.trim();
+            if (!content || !currentSelectedId) return;
+
+            const originalText = submitCommentBtn.textContent;
+            submitCommentBtn.textContent = 'Posting...';
+            submitCommentBtn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/catalog/${currentSelectedId}/comments`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ content })
+                });
+
+                if (res.ok) {
+                    newCommentInput.value = '';
+                    fetchAndRenderComments(currentSelectedId);
+                } else {
+                    alert('Failed to post comment.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error posting comment.');
+            } finally {
+                submitCommentBtn.textContent = originalText;
+                submitCommentBtn.disabled = false;
+            }
+        });
     }
 
     function openAuthModal() {
@@ -287,6 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const item = currentSearchResults.find(i => (i.id || i.apiId || i.externalId) == id);
                     if (!item) return;
 
+                    currentSelectedId = id;
                     currentSelectedMedia = {
                         apiId: id,
                         title: item.title,
@@ -302,6 +344,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     detailsModal.classList.remove('hidden');
                     searchResults.classList.add('hidden');
+
+                    // Fetch Reviews and Rating
+                    const detailsRating = document.getElementById('details-rating');
+                    const detailsReviewsList = document.getElementById('details-reviews-list');
+                    detailsRating.textContent = 'Loading...';
+                    detailsReviewsList.innerHTML = '<div class="loader">Loading reviews...</div>';
+
+                    try {
+                        const reviewsRes = await fetch(`${API_BASE}/catalog/${id}/reviews`);
+                        if (reviewsRes.ok) {
+                            const data = await reviewsRes.json();
+                            const averageScore = data.averageScore;
+                            const reviews = data.reviews;
+                            
+                            detailsRating.textContent = averageScore ? `${parseFloat(averageScore).toFixed(1)} / 100` : 'N/A';
+                            
+                            if (reviews && reviews.length > 0) {
+                                detailsReviewsList.innerHTML = reviews.map(r => `
+                                    <div class="review-card">
+                                        <div class="review-meta">${r.user?.email || 'Anonymous'} • Score: ${r.personalScore || 'N/A'}</div>
+                                        <div class="review-text">${r.reviewText}</div>
+                                    </div>
+                                `).join('');
+                            } else {
+                                detailsReviewsList.innerHTML = '<div class="search-item" style="border:none; padding:1rem 0;">No reviews yet. Be the first to review!</div>';
+                            }
+                        } else {
+                            detailsRating.textContent = 'N/A';
+                            detailsReviewsList.innerHTML = '<div class="search-item" style="border:none;">Failed to load reviews.</div>';
+                        }
+                    } catch (error) {
+                        console.error('Error fetching reviews:', error);
+                        detailsRating.textContent = 'N/A';
+                        detailsReviewsList.innerHTML = '<div class="search-item" style="border:none;">Error loading reviews.</div>';
+                    }
+
+                    fetchAndRenderComments(id);
                 });
             });
         }
@@ -458,5 +537,110 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.textContent = 'Error';
             setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
         }
+    }
+
+    async function fetchAndRenderComments(id) {
+        const commentsList = document.getElementById('details-comments-list');
+        commentsList.innerHTML = '<div class="loader">Loading comments...</div>';
+
+        try {
+            const res = await fetch(`${API_BASE}/catalog/${id}/comments`);
+            if (res.ok) {
+                const data = await res.json();
+                const comments = data.data || [];
+                
+                if (comments.length === 0) {
+                    commentsList.innerHTML = '<div class="search-item" style="border:none;">No comments yet. Start the conversation!</div>';
+                    return;
+                }
+
+                commentsList.innerHTML = comments.map(c => renderCommentThread(c)).join('');
+
+                // Attach reply listeners
+                document.querySelectorAll('.reply-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const parentId = e.target.getAttribute('data-id');
+                        const existingForm = document.getElementById(`reply-form-${parentId}`);
+                        if (existingForm) {
+                            existingForm.remove();
+                            return;
+                        }
+                        
+                        const formHtml = `
+                            <div class="reply-form-container" id="reply-form-${parentId}">
+                                <textarea class="reply-input" id="reply-input-${parentId}" placeholder="Write a reply..."></textarea>
+                                <button class="btn btn-secondary btn-small submit-reply-btn" style="margin-top:0.5rem;" data-parent="${parentId}">Reply</button>
+                            </div>
+                        `;
+                        e.target.closest('.comment-thread').insertAdjacentHTML('beforeend', formHtml);
+
+                        document.querySelector(`.submit-reply-btn[data-parent="${parentId}"]`).addEventListener('click', async (evt) => {
+                            if (!authToken) {
+                                openAuthModal();
+                                return;
+                            }
+                            const replyBtn = evt.target;
+                            const input = document.getElementById(`reply-input-${parentId}`);
+                            const content = input.value.trim();
+                            if (!content) return;
+
+                            replyBtn.textContent = '...';
+                            replyBtn.disabled = true;
+
+                            try {
+                                const postRes = await fetch(`${API_BASE}/catalog/${currentSelectedId}/comments`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${authToken}`
+                                    },
+                                    body: JSON.stringify({ content, parentId })
+                                });
+
+                                if (postRes.ok) {
+                                    fetchAndRenderComments(currentSelectedId);
+                                } else {
+                                    alert('Failed to post reply.');
+                                    replyBtn.textContent = 'Reply';
+                                    replyBtn.disabled = false;
+                                }
+                            } catch (err) {
+                                console.error(err);
+                                alert('Error posting reply.');
+                                replyBtn.textContent = 'Reply';
+                                replyBtn.disabled = false;
+                            }
+                        });
+                    });
+                });
+            } else {
+                commentsList.innerHTML = '<div class="search-item" style="border:none;">Failed to load comments.</div>';
+            }
+        } catch (error) {
+            console.error('Error fetching comments:', error);
+            commentsList.innerHTML = '<div class="search-item" style="border:none;">Error loading comments.</div>';
+        }
+    }
+
+    function renderCommentThread(comment) {
+        const repliesHtml = (comment.replies || []).map(r => `
+            <div class="comment-reply">
+                <div class="comment-meta"><strong>${r.author?.email || 'Anonymous'}</strong> • ${new Date(r.createdAt).toLocaleDateString()}</div>
+                <div class="comment-text">${r.content}</div>
+            </div>
+        `).join('');
+
+        return `
+            <div class="comment-thread">
+                <div class="comment-card">
+                    <div class="comment-meta"><strong>${comment.author?.email || 'Anonymous'}</strong> • ${new Date(comment.createdAt).toLocaleDateString()}</div>
+                    <div class="comment-text">${comment.content}</div>
+                    <div class="comment-actions">
+                        <button class="reply-btn" data-id="${comment.id}">Reply</button>
+                    </div>
+                </div>
+                ${repliesHtml}
+            </div>
+        `;
     }
 });

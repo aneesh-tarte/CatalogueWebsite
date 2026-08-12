@@ -17,6 +17,7 @@ model User {
   passwordHash String
   createdAt    DateTime      @default(now())
   library      UserLibrary[]
+  comments     Comment[]
 }
 
 enum MediaType {
@@ -34,6 +35,7 @@ model MediaItem {
   coverImageUrl String?
   releaseDate   DateTime?
   trackedBy     UserLibrary[]
+  comments      Comment[]
 
   @@index([externalId])
   @@index([type])
@@ -69,4 +71,21 @@ model NewsArticle {
   imageUrl    String?
   publisher   String
   publishedAt DateTime
+}
+
+model Comment {
+  id          String    @id @default(uuid())
+  content     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  mediaItemId String
+  mediaItem   MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+
+  parentId    String?
+  parent      Comment?  @relation("ThreadedReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     Comment[] @relation("ThreadedReplies")
 }
