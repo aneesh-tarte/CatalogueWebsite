@@ -814,3 +814,20 @@ body {
 #chat-input:focus {
     border-color: var(--accent-vibrant);
 }
+
+/* App Navigation */
+.app-nav { display: flex; gap: 1rem; align-items: center; margin-left: 2rem; }
+.nav-link { color: #cbd5e1; text-decoration: none; font-weight: 600; padding: 0.5rem 1rem; border-radius: 0.5rem; transition: background-color 0.2s, color 0.2s; }
+.nav-link:hover { background-color: rgba(255,255,255,0.1); color: #fff; }
+.nav-link.active { background-color: var(--accent-vibrant); color: #fff; }
+
+/* Profile View */
+.profile-header-section { background-color: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 1rem; padding: 2rem; margin-bottom: 2rem; }
+.profile-header-content { display: flex; align-items: center; gap: 2rem; }
+.profile-avatar { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent-vibrant); }
+.profile-details { flex-grow: 1; }
+.profile-details h2 { margin: 0 0 0.5rem 0; font-size: 2rem; }
+.profile-details p { margin: 0; color: #cbd5e1; }
+
+/* Utility Classes */
+.hidden { display: none !important; }

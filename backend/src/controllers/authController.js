@@ -57,4 +57,66 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { register, login };
+const getProfile = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        avatarUrl: true,
+        bio: true,
+        createdAt: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ user });
+  } catch (error) {
+    console.error('getProfile error:', error.stack);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { username, avatarUrl, bio } = req.body;
+
+    if (username) {
+      const existing = await prisma.user.findUnique({ where: { username } });
+      if (existing && existing.id !== userId) {
+        return res.status(409).json({ error: 'Username already taken' });
+      }
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        username: username !== undefined ? username : undefined,
+        avatarUrl: avatarUrl !== undefined ? avatarUrl : undefined,
+        bio: bio !== undefined ? bio : undefined
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        avatarUrl: true,
+        bio: true,
+        createdAt: true
+      }
+    });
+
+    res.json({ user: updatedUser });
+  } catch (error) {
+    console.error('updateProfile error:', error.stack);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+module.exports = { register, login, getProfile, updateProfile };

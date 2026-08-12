@@ -9,6 +9,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const newsCarousel = document.getElementById('news-carousel');
     const authBtn = document.getElementById('auth-btn');
     
+    // Nav & Profile Elements
+    const appNav = document.getElementById('app-nav');
+    const navDashboard = document.getElementById('nav-dashboard');
+    const navProfile = document.getElementById('nav-profile');
+    const dashboardView = document.getElementById('dashboard-view');
+    const profileView = document.getElementById('profile-view');
+    const profileAvatar = document.getElementById('profile-avatar');
+    const profileUsername = document.getElementById('profile-username');
+    const profileBio = document.getElementById('profile-bio');
+    const editProfileBtn = document.getElementById('edit-profile-btn');
+    const editProfileModal = document.getElementById('edit-profile-modal');
+    const closeEditProfileModal = document.getElementById('close-edit-profile-modal');
+    const editProfileForm = document.getElementById('edit-profile-form');
+    const editUsername = document.getElementById('edit-username');
+    const editAvatar = document.getElementById('edit-avatar');
+    const editBio = document.getElementById('edit-bio');
+    const editProfileError = document.getElementById('edit-profile-error');
+    
     // Chat Elements
     const chatHistory = document.getElementById('chat-history');
     const chatForm = document.getElementById('chat-form');
@@ -52,9 +70,11 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchNews();
         if (authToken) {
             authBtn.textContent = 'Sign Out';
+            appNav.classList.remove('hidden');
             fetchLibrary();
         } else {
             libraryContent.innerHTML = `<div class="loader">Please Sign In to view your library.</div>`;
+            appNav.classList.add('hidden');
         }
     }
 
@@ -113,6 +133,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 authBtn.textContent = 'Sign In';
                 libraryData = [];
                 libraryContent.innerHTML = `<div class="loader">Please Sign In to view your library.</div>`;
+                appNav.classList.add('hidden');
+                switchToView('dashboard');
             } else {
                 openAuthModal();
             }
@@ -165,6 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('token', authToken);
                 closeAuthModalFunc();
                 authBtn.textContent = 'Sign Out';
+                appNav.classList.remove('hidden');
                 fetchLibrary();
             } catch (err) {
                 authError.textContent = err.message;
@@ -724,4 +747,95 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
     }
+
+    // --- Profile Hub Logic ---
+    function switchToView(viewName) {
+        if (viewName === 'dashboard') {
+            dashboardView.classList.remove('hidden');
+            profileView.classList.add('hidden');
+            navDashboard.classList.add('active');
+            navProfile.classList.remove('active');
+        } else if (viewName === 'profile') {
+            dashboardView.classList.add('hidden');
+            profileView.classList.remove('hidden');
+            navDashboard.classList.remove('active');
+            navProfile.classList.add('active');
+            fetchProfile();
+        }
+    }
+
+    navDashboard.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchToView('dashboard');
+    });
+
+    navProfile.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchToView('profile');
+    });
+
+    async function fetchProfile() {
+        if (!authToken) return;
+        try {
+            const res = await fetch(`${API_BASE}/auth/profile`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            if (res.ok) {
+                const { user } = await res.json();
+                profileUsername.textContent = user.username || user.email.split('@')[0];
+                profileBio.textContent = user.bio || "No bio available. Click 'Edit Profile' to add one.";
+                if (user.avatarUrl) {
+                    profileAvatar.src = user.avatarUrl;
+                } else {
+                    profileAvatar.src = `https://via.placeholder.com/150/1e293b/ffffff?text=${(user.username || user.email).charAt(0).toUpperCase()}`;
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch profile:', error);
+        }
+    }
+
+    editProfileBtn.addEventListener('click', () => {
+        editProfileModal.classList.remove('hidden');
+    });
+
+    closeEditProfileModal.addEventListener('click', () => {
+        editProfileModal.classList.add('hidden');
+        editProfileError.classList.add('hidden');
+    });
+
+    editProfileForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = editUsername.value.trim();
+        const avatarUrl = editAvatar.value.trim();
+        const bio = editBio.value.trim();
+
+        const payload = {};
+        if (username) payload.username = username;
+        if (avatarUrl) payload.avatarUrl = avatarUrl;
+        if (bio) payload.bio = bio;
+
+        try {
+            const res = await fetch(`${API_BASE}/auth/profile`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}` 
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (res.ok) {
+                editProfileModal.classList.add('hidden');
+                editProfileError.classList.add('hidden');
+                fetchProfile(); // Refresh UI
+            } else {
+                editProfileError.textContent = data.error || 'Failed to update profile.';
+                editProfileError.classList.remove('hidden');
+            }
+        } catch (error) {
+            editProfileError.textContent = 'An error occurred while saving.';
+            editProfileError.classList.remove('hidden');
+        }
+    });
 });
