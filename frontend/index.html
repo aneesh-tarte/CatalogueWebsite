@@ -29,6 +29,19 @@
             </div>
         </section>
 
+        <section class="chat-section">
+            <header class="section-header">
+                <h2>Live Community Chat</h2>
+            </header>
+            <div class="chat-container">
+                <div class="chat-history" id="chat-history"></div>
+                <form id="chat-form" class="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Type a message..." required autocomplete="off" />
+                    <button type="submit" class="btn btn-primary">Send</button>
+                </form>
+            </div>
+        </section>
+
         <section class="library-section">
             <header class="section-header">
                 <h2>Your Tracking Library</h2>
@@ -108,6 +121,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="./app.js"></script>
 </body>
 </html>

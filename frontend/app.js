@@ -9,6 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const newsCarousel = document.getElementById('news-carousel');
     const authBtn = document.getElementById('auth-btn');
     
+    // Chat Elements
+    const chatHistory = document.getElementById('chat-history');
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+    
     // Modal Elements
     const authModal = document.getElementById('auth-modal');
     const closeAuthModal = document.getElementById('close-auth-modal');
@@ -459,9 +464,52 @@ document.addEventListener('DOMContentLoaded', () => {
             { source: 'AnimeNewsNetwork', publishedAt: new Date().toISOString(), title: 'Demon Slayer Season 4 Premiere Date Announced', url: '#', imageUrl: 'https://via.placeholder.com/350x200/8b5cf6/fff?text=Demon+Slayer' },
             { source: 'IGN', publishedAt: new Date(Date.now() - 86400000).toISOString(), title: 'The Last of Us Season 2 Casts Abby', url: '#', imageUrl: 'https://via.placeholder.com/350x200/3b82f6/fff?text=TLOU' },
             { source: 'Crunchyroll', publishedAt: new Date(Date.now() - 172800000).toISOString(), title: 'Solo Leveling Episode 5 Breaks Records', url: '#', imageUrl: 'https://via.placeholder.com/350x200/1e293b/fff?text=Solo+Leveling' },
-            { source: 'Kotaku', publishedAt: new Date(Date.now() - 259200000).toISOString(), title: 'Elden Ring DLC Gameplay Revealed', url: '#', imageUrl: 'https://via.placeholder.com/350x200/0f172a/fff?text=Elden+Ring' }
+                    { source: 'Kotaku', publishedAt: new Date(Date.now() - 259200000).toISOString(), title: 'Elden Ring DLC Gameplay Revealed', url: '#', imageUrl: 'https://via.placeholder.com/350x200/0f172a/fff?text=Elden+Ring' }
         ];
         renderNews(mockNews);
+    }
+
+    // --- Real-Time Community Chat Logic ---
+    const socket = typeof io !== 'undefined' ? io(API_BASE.replace('/api', '')) : null;
+    let sessionUsername = null;
+
+    if (socket && chatHistory && chatForm) {
+        socket.on('chatMessage', (msg) => {
+            const isSelf = msg.username === sessionUsername;
+            
+            const bubble = document.createElement('div');
+            bubble.className = `chat-message ${isSelf ? 'self' : ''}`;
+            
+            const timeString = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            bubble.innerHTML = `
+                <div class="meta">
+                    <strong>${msg.username}</strong>
+                    <span>${timeString}</span>
+                </div>
+                <div class="chat-bubble">${msg.content}</div>
+            `;
+            
+            chatHistory.appendChild(bubble);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        });
+
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const content = chatInput.value.trim();
+            if (!content) return;
+            
+            if (!sessionUsername) {
+                sessionUsername = prompt("Enter a username for the chat:") || 'Guest';
+            }
+
+            socket.emit('chatMessage', {
+                username: sessionUsername,
+                content: content
+            });
+            
+            chatInput.value = '';
+        });
     }
 
     // --- Library Module ---
