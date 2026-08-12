@@ -47,8 +47,8 @@ The database schema is defined using Prisma. Here are the core models and their 
 ### Core Models
 
 - **User**
-  - Handles authentication.
-  - Fields: `id` (UUID), `email` (Unique), `passwordHash`, `createdAt`.
+  - Handles authentication and profile information.
+  - Fields: `id` (UUID), `email` (Unique), `passwordHash`, `username` (Unique), `avatarUrl`, `bio`, `createdAt`.
   - Relations: One-to-Many with `UserLibrary` and `Comment`.
 
 - **MediaItem**
@@ -70,6 +70,10 @@ The database schema is defined using Prisma. Here are the core models and their 
   - Fields: `id`, `content`, `createdAt`, `updatedAt`, `authorId`, `mediaItemId`, `parentId`.
   - Relations: Belongs to `User` (author) and `MediaItem`. Self-referencing relationship via `parentId` to support threaded nested replies.
 
+- **ChatMessage**
+  - Stores history for the global live community chat.
+  - Fields: `id`, `content`, `username`, `timestamp`.
+
 ---
 
 ## 5. Backend Structure & APIs
@@ -85,10 +89,11 @@ The backend is modularized inside the `src/` directory.
 
 ### REST API Routes
 The API is prefixed with `/api`.
-- **Auth Routes (`/api/auth`)**: Handled by `authRoutes.js`. Responsible for user registration and login.
+- **Auth Routes (`/api/auth`)**: Handled by `authRoutes.js`. Responsible for user registration, login, and managing user profiles (`/profile`).
 - **Catalog Routes (`/api/catalog`)**: Handled by `catalogRoutes.js`. Responsible for searching global media items (`/search`), fetching aggregated public reviews and global ratings (`/:id/reviews`), and managing community comment threads (`/:id/comments`).
 - **Library Routes (`/api/library`)**: Handled by `libraryRoutes.js`. Responsible for CRUD operations on a user's personal tracking library (requires JWT auth).
 - **News Routes (`/api/news`)**: Handled by `newsRoutes.js`. Fetches the latest synced news articles.
+- **Chat Routes (`/api/chat`)**: Handled by `chatRoutes.js`. Responsible for fetching the most recent global chat messages and saving new ones.
 
 ### Background Jobs
 - **NewsSyncJob**: Instantiated in `server.js` (`NewsSyncJob.start()`). It uses `node-cron` to periodically fetch RSS feeds or external APIs, parses them (using `fast-xml-parser`), and stores the latest `NewsArticle` records in the database.
@@ -99,11 +104,14 @@ The API is prefixed with `/api`.
 
 The frontend (`index.html`) is a Single Page Application (SPA) layout divided into several key sections:
 
-- **App Header**: 
-  - Contains branding, a global search bar (with real-time autocomplete results), and a user profile/auth button.
-- **Dashboard Layout**:
-  - **Library Section**: Displays the user's tracked items. It includes tabbed navigation (`In Progress`, `Plan to Track`, `Completed`, `Dropped`) to filter the view.
-  - **News Section**: A sidebar stream that displays the latest industry news fetched from the backend.
+- **App Header & Navigation**: 
+  - Contains branding, a global search bar (with real-time autocomplete results), an auth button, and SPA navigation links (`Dashboard` and `Profile`).
+- **Dashboard View**:
+  - **News Carousel**: A top-level horizontal carousel displaying the latest vibrant industry news cards fetched from the backend.
+  - **Live Community Chat**: A real-time chat interface connected directly to Supabase Realtime (Serverless) allowing active users to converse globally.
+- **Profile View**:
+  - **Profile Header**: Displays the user's avatar, username, and bio, with an "Edit Profile" modal to update details.
+  - **Library Section**: Displays the user's tracked items underneath their profile. It includes tabbed navigation (`In Progress`, `Plan to Track`, `Completed`, `Dropped`) to filter the view.
 - **Modals**:
   - **Auth Modal**: Provides the UI for Signing In and Registering. Connects to `/api/auth`.
   - **Details Modal**: Pops up when a user clicks on a media item (from search or library). It includes:
