@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchResults = document.getElementById('search-results');
     const tabBtns = document.querySelectorAll('.tab-btn');
     const libraryContent = document.getElementById('library-content');
-    const newsStream = document.getElementById('news-stream');
+    const newsCarousel = document.getElementById('news-carousel');
     const authBtn = document.getElementById('auth-btn');
     
     // Modal Elements
@@ -404,29 +404,62 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    let carouselInterval;
+
     function renderNews(newsItems) {
         if (!newsItems || newsItems.length === 0) {
-            newsStream.innerHTML = `<div class="loader">No recent news.</div>`;
+            newsCarousel.innerHTML = `<div class="loader">No recent news.</div>`;
             return;
         }
 
-        newsStream.innerHTML = newsItems.map(item => `
-            <article class="news-card">
-                <div class="news-meta">
-                    <span>${item.publisher || item.source}</span>
-                    <span>${new Date(item.publishedAt).toLocaleDateString()}</span>
+        newsCarousel.innerHTML = newsItems.map(item => {
+            const bgImage = item.imageUrl || item.image || 'https://via.placeholder.com/350x200/3b82f6/ffffff?text=News';
+            return `
+            <a href="${item.sourceUrl || item.url}" target="_blank" class="news-hero-card" style="background-image: url('${bgImage}')">
+                <div class="news-hero-overlay">
+                    <div class="news-hero-meta">
+                        <span>${item.publisher || item.source}</span>
+                        <span>${new Date(item.publishedAt).toLocaleDateString()}</span>
+                    </div>
+                    <div class="news-hero-title">${item.headline || item.title}</div>
                 </div>
-                <a href="${item.sourceUrl || item.url}" target="_blank" class="news-title">${item.headline || item.title}</a>
-                <p class="news-snippet">${item.snippet || ''}</p>
-            </article>
-        `).join('');
+            </a>
+            `;
+        }).join('');
+
+        setupCarouselAutoScroll();
+    }
+
+    function setupCarouselAutoScroll() {
+        if (carouselInterval) clearInterval(carouselInterval);
+        
+        const scrollStep = () => {
+            if (!newsCarousel) return;
+            const cardWidth = 350 + 16; // 350px width + 1rem (16px) gap
+            const maxScroll = newsCarousel.scrollWidth - newsCarousel.clientWidth;
+            
+            if (newsCarousel.scrollLeft >= maxScroll - 10) {
+                newsCarousel.scrollLeft = 0;
+            } else {
+                newsCarousel.scrollLeft += cardWidth;
+            }
+        };
+
+        carouselInterval = setInterval(scrollStep, 5000);
+
+        newsCarousel.addEventListener('mouseenter', () => clearInterval(carouselInterval));
+        newsCarousel.addEventListener('mouseleave', () => {
+            clearInterval(carouselInterval);
+            carouselInterval = setInterval(scrollStep, 5000);
+        });
     }
 
     function renderMockNews() {
         const mockNews = [
-            { source: 'AnimeNewsNetwork', publishedAt: new Date().toISOString(), title: 'Demon Slayer Season 4 Premiere Date Announced', url: '#' },
-            { source: 'IGN', publishedAt: new Date(Date.now() - 86400000).toISOString(), title: 'The Last of Us Season 2 Casts Abby', url: '#' },
-            { source: 'Crunchyroll', publishedAt: new Date(Date.now() - 172800000).toISOString(), title: 'Solo Leveling Episode 5 Breaks Records', url: '#' }
+            { source: 'AnimeNewsNetwork', publishedAt: new Date().toISOString(), title: 'Demon Slayer Season 4 Premiere Date Announced', url: '#', imageUrl: 'https://via.placeholder.com/350x200/8b5cf6/fff?text=Demon+Slayer' },
+            { source: 'IGN', publishedAt: new Date(Date.now() - 86400000).toISOString(), title: 'The Last of Us Season 2 Casts Abby', url: '#', imageUrl: 'https://via.placeholder.com/350x200/3b82f6/fff?text=TLOU' },
+            { source: 'Crunchyroll', publishedAt: new Date(Date.now() - 172800000).toISOString(), title: 'Solo Leveling Episode 5 Breaks Records', url: '#', imageUrl: 'https://via.placeholder.com/350x200/1e293b/fff?text=Solo+Leveling' },
+            { source: 'Kotaku', publishedAt: new Date(Date.now() - 259200000).toISOString(), title: 'Elden Ring DLC Gameplay Revealed', url: '#', imageUrl: 'https://via.placeholder.com/350x200/0f172a/fff?text=Elden+Ring' }
         ];
         renderNews(mockNews);
     }
