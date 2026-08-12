@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const API_BASE = 'https://catalogue-website-ten.vercel.app/api'; // Production backend
+    const SUPABASE_URL = 'https://dyxcukchextjinfrkxdo.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR5eGN1a2NoZXh0amluZnJreGRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMDE3OTgsImV4cCI6MjA5OTc3Nzc5OH0.KNraxiSl9365LOWSUaLx0hA_Z-9ozhOL5ctfC2_8Qh8'; // IMPORTANT: Replace with your actual anon key!
 
     // DOM Elements
     const searchInput = document.getElementById('global-search');
@@ -8,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const libraryContent = document.getElementById('library-content');
     const newsCarousel = document.getElementById('news-carousel');
     const authBtn = document.getElementById('auth-btn');
-    
+
     // Nav & Profile Elements
     const appNav = document.getElementById('app-nav');
     const navDashboard = document.getElementById('nav-dashboard');
@@ -26,12 +28,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const editAvatar = document.getElementById('edit-avatar');
     const editBio = document.getElementById('edit-bio');
     const editProfileError = document.getElementById('edit-profile-error');
-    
+
     // Chat Elements
     const chatHistory = document.getElementById('chat-history');
     const chatForm = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-input');
-    
+
     // Modal Elements
     const authModal = document.getElementById('auth-modal');
     const closeAuthModal = document.getElementById('close-auth-modal');
@@ -94,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         searchInput.addEventListener('input', (e) => {
             const query = e.target.value.trim();
-            
+
             if (query === '') {
                 searchResults.innerHTML = '';
                 searchResults.classList.add('hidden');
@@ -104,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Show loading state while waiting for debounce and fetch
             searchResults.innerHTML = `<div class="search-item">Searching...</div>`;
             searchResults.classList.remove('hidden');
-            
+
             debouncedSearch(query);
         });
 
@@ -265,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const submitCommentBtn = document.getElementById('submit-comment-btn');
         const newCommentInput = document.getElementById('new-comment-input');
-        
+
         submitCommentBtn.addEventListener('click', async () => {
             if (!authToken) {
                 openAuthModal();
@@ -384,9 +386,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             const data = await reviewsRes.json();
                             const averageScore = data.averageScore;
                             const reviews = data.reviews;
-                            
+
                             detailsRating.textContent = averageScore ? `${parseFloat(averageScore).toFixed(1)} / 100` : 'N/A';
-                            
+
                             if (reviews && reviews.length > 0) {
                                 detailsReviewsList.innerHTML = reviews.map(r => `
                                     <div class="review-card">
@@ -461,12 +463,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setupCarouselAutoScroll() {
         if (carouselInterval) clearInterval(carouselInterval);
-        
+
         const scrollStep = () => {
             if (!newsCarousel) return;
             const cardWidth = 350 + 16; // 350px width + 1rem (16px) gap
             const maxScroll = newsCarousel.scrollWidth - newsCarousel.clientWidth;
-            
+
             if (newsCarousel.scrollLeft >= maxScroll - 10) {
                 newsCarousel.scrollLeft = 0;
             } else {
@@ -488,24 +490,40 @@ document.addEventListener('DOMContentLoaded', () => {
             { source: 'AnimeNewsNetwork', publishedAt: new Date().toISOString(), title: 'Demon Slayer Season 4 Premiere Date Announced', url: '#', imageUrl: 'https://via.placeholder.com/350x200/8b5cf6/fff?text=Demon+Slayer' },
             { source: 'IGN', publishedAt: new Date(Date.now() - 86400000).toISOString(), title: 'The Last of Us Season 2 Casts Abby', url: '#', imageUrl: 'https://via.placeholder.com/350x200/3b82f6/fff?text=TLOU' },
             { source: 'Crunchyroll', publishedAt: new Date(Date.now() - 172800000).toISOString(), title: 'Solo Leveling Episode 5 Breaks Records', url: '#', imageUrl: 'https://via.placeholder.com/350x200/1e293b/fff?text=Solo+Leveling' },
-                    { source: 'Kotaku', publishedAt: new Date(Date.now() - 259200000).toISOString(), title: 'Elden Ring DLC Gameplay Revealed', url: '#', imageUrl: 'https://via.placeholder.com/350x200/0f172a/fff?text=Elden+Ring' }
+            { source: 'Kotaku', publishedAt: new Date(Date.now() - 259200000).toISOString(), title: 'Elden Ring DLC Gameplay Revealed', url: '#', imageUrl: 'https://via.placeholder.com/350x200/0f172a/fff?text=Elden+Ring' }
         ];
         renderNews(mockNews);
     }
 
     // --- Real-Time Community Chat Logic ---
-    const socket = typeof io !== 'undefined' ? io(API_BASE.replace('/api', '')) : null;
+    const supabase = typeof window.supabase !== 'undefined' ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
     let sessionUsername = null;
 
-    if (socket && chatHistory && chatForm) {
-        socket.on('chatMessage', (msg) => {
+    if (supabase && chatHistory && chatForm) {
+        // Fetch existing messages
+        fetch(`${API_BASE}/chat`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.messages) {
+                    data.messages.forEach(msg => appendChatMessage(msg));
+                }
+            })
+            .catch(err => console.error('Failed to load chat history:', err));
+
+        // Subscribe to real-time broadcasts
+        const channel = supabase.channel('global-chat');
+        channel
+            .on('broadcast', { event: 'chatMessage' }, (payload) => {
+                appendChatMessage(payload.payload);
+            })
+            .subscribe();
+
+        function appendChatMessage(msg) {
             const isSelf = msg.username === sessionUsername;
-            
             const bubble = document.createElement('div');
             bubble.className = `chat-message ${isSelf ? 'self' : ''}`;
-            
             const timeString = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            
+
             bubble.innerHTML = `
                 <div class="meta">
                     <strong>${msg.username}</strong>
@@ -513,26 +531,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="chat-bubble">${msg.content}</div>
             `;
-            
             chatHistory.appendChild(bubble);
             chatHistory.scrollTop = chatHistory.scrollHeight;
-        });
+        }
 
-        chatForm.addEventListener('submit', (e) => {
+        chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const content = chatInput.value.trim();
             if (!content) return;
-            
+
             if (!sessionUsername) {
                 sessionUsername = prompt("Enter a username for the chat:") || 'Guest';
             }
 
-            socket.emit('chatMessage', {
+            const msgObj = {
                 username: sessionUsername,
-                content: content
+                content: content,
+                timestamp: new Date().toISOString()
+            };
+
+            // Broadcast instantly to others
+            channel.send({
+                type: 'broadcast',
+                event: 'chatMessage',
+                payload: msgObj
             });
-            
+
+            // Show locally
+            appendChatMessage(msgObj);
             chatInput.value = '';
+
+            // Save to database asynchronously
+            fetch(`${API_BASE}/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: sessionUsername, content: content })
+            }).catch(err => console.error('Failed to save message:', err));
         });
     }
 
@@ -652,7 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (res.ok) {
                 const data = await res.json();
                 const comments = data.data || [];
-                
+
                 if (comments.length === 0) {
                     commentsList.innerHTML = '<div class="search-item" style="border:none;">No comments yet. Start the conversation!</div>';
                     return;
@@ -669,7 +703,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             existingForm.remove();
                             return;
                         }
-                        
+
                         const formHtml = `
                             <div class="reply-form-container" id="reply-form-${parentId}">
                                 <textarea class="reply-input" id="reply-input-${parentId}" placeholder="Write a reply..."></textarea>
@@ -818,9 +852,9 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const res = await fetch(`${API_BASE}/auth/profile`, {
                 method: 'PUT',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}` 
+                    'Authorization': `Bearer ${authToken}`
                 },
                 body: JSON.stringify(payload)
             });

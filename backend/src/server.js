@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
-const { Server } = require('socket.io');
 const routes = require('./routes');
 const NewsSyncJob = require('./services/NewsSyncJob');
 
@@ -25,26 +24,6 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use('/api', routes);
-
-const io = new Server(server, {
-    cors: {
-        origin: allowedOrigins,
-        methods: ["GET", "POST"],
-        credentials: true
-    }
-});
-
-io.on('connection', (socket) => {
-    socket.join('global-chat');
-    
-    socket.on('chatMessage', (msg) => {
-        io.to('global-chat').emit('chatMessage', {
-            username: msg.username || 'Anonymous',
-            content: msg.content,
-            timestamp: new Date().toISOString()
-        });
-    });
-});
 
 NewsSyncJob.start();
 

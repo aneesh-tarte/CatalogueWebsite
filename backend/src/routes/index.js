@@ -5,10 +5,12 @@ const authRoutes = require('./authRoutes');
 const catalogRoutes = require('./catalogRoutes');
 const newsRoutes = require('./newsRoutes');
 const libraryRoutes = require('./libraryRoutes');
+const chatRoutes = require('./chatRoutes');
 
 router.use('/auth', authRoutes);
 router.use('/catalog', catalogRoutes);
 router.use('/news', newsRoutes);
 router.use('/library', libraryRoutes);
+router.use('/chat', chatRoutes);
 
 module.exports = router;
