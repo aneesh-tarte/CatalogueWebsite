@@ -365,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         imageUrl: item.coverImageUrl || item.image || item.coverImage
                     };
 
-                    detailsImage.src = item.coverImageUrl || item.image || item.coverImage || 'https://via.placeholder.com/200x300';
+                    detailsImage.src = item.coverImageUrl || item.image || item.coverImage || '';
                     detailsTitle.textContent = item.title || 'Unknown Title';
                     detailsType.textContent = item.type || item.mediaType || 'Media';
                     detailsRelease.textContent = item.releaseDate ? new Date(item.releaseDate).getFullYear() : 'Unknown Year';

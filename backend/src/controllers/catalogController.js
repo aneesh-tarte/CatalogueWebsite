@@ -67,6 +67,13 @@ const search = async (req, res) => {
       combinedResults.push(...gameItems);
     }
 
+    // Log the Sanitization
+    combinedResults.forEach(item => {
+      if (item.type === 'ANIME' || item.type === 'MANGA') {
+        console.log('Jikan mapped genres:', item.title, item.genres);
+      }
+    });
+
     // Data Sanitization: Filter missing genres and release date
     combinedResults = combinedResults.filter(item => {
       const hasGenres = Array.isArray(item.genres) && item.genres.length > 0;
