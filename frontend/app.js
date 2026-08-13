@@ -443,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         newsCarousel.innerHTML = newsItems.map(item => {
-            const bgImage = item.imageUrl || item.image || 'https://via.placeholder.com/350x200/3b82f6/ffffff?text=News';
+            const bgImage = item.imageUrl || item.image || 'https://placehold.co/350x200/3b82f6/ffffff?text=News';
             return `
             <a href="${item.sourceUrl || item.url}" target="_blank" class="news-hero-card">
                 <img src="${bgImage}" alt="${item.headline || item.title}" class="news-hero-image" />
@@ -487,10 +487,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderMockNews() {
         const mockNews = [
-            { source: 'AnimeNewsNetwork', publishedAt: new Date().toISOString(), title: 'Demon Slayer Season 4 Premiere Date Announced', url: '#', imageUrl: 'https://via.placeholder.com/350x200/8b5cf6/fff?text=Demon+Slayer' },
-            { source: 'IGN', publishedAt: new Date(Date.now() - 86400000).toISOString(), title: 'The Last of Us Season 2 Casts Abby', url: '#', imageUrl: 'https://via.placeholder.com/350x200/3b82f6/fff?text=TLOU' },
-            { source: 'Crunchyroll', publishedAt: new Date(Date.now() - 172800000).toISOString(), title: 'Solo Leveling Episode 5 Breaks Records', url: '#', imageUrl: 'https://via.placeholder.com/350x200/1e293b/fff?text=Solo+Leveling' },
-            { source: 'Kotaku', publishedAt: new Date(Date.now() - 259200000).toISOString(), title: 'Elden Ring DLC Gameplay Revealed', url: '#', imageUrl: 'https://via.placeholder.com/350x200/0f172a/fff?text=Elden+Ring' }
+            { source: 'AnimeNewsNetwork', publishedAt: new Date().toISOString(), title: 'Demon Slayer Season 4 Premiere Date Announced', url: '#', imageUrl: 'https://placehold.co/350x200/8b5cf6/fff?text=Demon+Slayer' },
+            { source: 'IGN', publishedAt: new Date(Date.now() - 86400000).toISOString(), title: 'The Last of Us Season 2 Casts Abby', url: '#', imageUrl: 'https://placehold.co/350x200/3b82f6/fff?text=TLOU' },
+            { source: 'Crunchyroll', publishedAt: new Date(Date.now() - 172800000).toISOString(), title: 'Solo Leveling Episode 5 Breaks Records', url: '#', imageUrl: 'https://placehold.co/350x200/1e293b/fff?text=Solo+Leveling' },
+            { source: 'Kotaku', publishedAt: new Date(Date.now() - 259200000).toISOString(), title: 'Elden Ring DLC Gameplay Revealed', url: '#', imageUrl: 'https://placehold.co/350x200/0f172a/fff?text=Elden+Ring' }
         ];
         renderNews(mockNews);
     }
@@ -821,7 +821,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (user.avatarUrl) {
                     profileAvatar.src = user.avatarUrl;
                 } else {
-                    profileAvatar.src = `https://via.placeholder.com/150/1e293b/ffffff?text=${(user.username || user.email).charAt(0).toUpperCase()}`;
+                    profileAvatar.src = `https://placehold.co/150x150/1e293b/ffffff?text=${(user.username || user.email).charAt(0).toUpperCase()}`;
                 }
             }
         } catch (error) {

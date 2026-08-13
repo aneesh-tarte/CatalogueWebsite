@@ -36,7 +36,7 @@ const search = async (req, res) => {
         type: 'ANIME',
         releaseDate: item.aired?.from ? new Date(item.aired.from).toISOString() : null,
         coverImageUrl: item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || null,
-        genres: item.genres ? item.genres.map(g => g.name) : []
+        genres: [...(item.genres || []), ...(item.explicit_genres || []), ...(item.themes || []), ...(item.demographics || [])].map(g => g.name)
       }));
       combinedResults.push(...animeItems);
     }
@@ -49,7 +49,7 @@ const search = async (req, res) => {
         type: 'MANGA',
         releaseDate: item.published?.from ? new Date(item.published.from).toISOString() : null,
         coverImageUrl: item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || null,
-        genres: item.genres ? item.genres.map(g => g.name) : []
+        genres: [...(item.genres || []), ...(item.explicit_genres || []), ...(item.themes || []), ...(item.demographics || [])].map(g => g.name)
       }));
       combinedResults.push(...mangaItems);
     }
