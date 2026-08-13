@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailsTitle = document.getElementById('details-title');
     const detailsType = document.getElementById('details-type');
     const detailsRelease = document.getElementById('details-release');
-    const detailsSynopsis = document.getElementById('details-synopsis');
+    const detailsGenres = document.getElementById('details-genres');
     const detailsAddBtn = document.getElementById('details-add-btn');
     const detailsNewsBtn = document.getElementById('details-news-btn');
 
@@ -369,7 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     detailsTitle.textContent = item.title || 'Unknown Title';
                     detailsType.textContent = item.type || item.mediaType || 'Media';
                     detailsRelease.textContent = item.releaseDate ? new Date(item.releaseDate).getFullYear() : 'Unknown Year';
-                    detailsSynopsis.innerHTML = item.synopsis || item.description || 'No description available.';
+                    detailsGenres.innerHTML = (item.genres || []).map(g => `<span class="genre-badge">${g}</span>`).join('');
 
                     detailsModal.classList.remove('hidden');
                     searchResults.classList.add('hidden');

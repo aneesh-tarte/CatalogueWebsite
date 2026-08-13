@@ -831,3 +831,19 @@ body {
 
 /* Utility Classes */
 .hidden { display: none !important; }
+
+/* Genres */
+.genres-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+.genre-badge {
+    background-color: var(--accent-vibrant);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}

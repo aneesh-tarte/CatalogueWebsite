@@ -21,7 +21,7 @@ const search = async (req, res) => {
       axios.get(`https://api.jikan.moe/v4/manga?q=${encodeURIComponent(q)}&sfw=true`, { timeout: 3000 }),
       axios.post(
         'https://api.igdb.com/v4/games',
-        `fields name, summary, cover.url, first_release_date; search "${q}"; limit 20;`,
+        `fields name, genres.name, cover.url, first_release_date; search "${q}"; where category = (0, 8, 9) & genres != null; limit 20;`,
         { headers: igdbHeaders, timeout: 3000 }
       )
     ]);
@@ -36,7 +36,7 @@ const search = async (req, res) => {
         type: 'ANIME',
         releaseDate: item.aired?.from ? new Date(item.aired.from).toISOString() : null,
         coverImageUrl: item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || null,
-        synopsis: item.synopsis || null
+        genres: item.genres ? item.genres.map(g => g.name) : []
       }));
       combinedResults.push(...animeItems);
     }
@@ -49,7 +49,7 @@ const search = async (req, res) => {
         type: 'MANGA',
         releaseDate: item.published?.from ? new Date(item.published.from).toISOString() : null,
         coverImageUrl: item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || null,
-        synopsis: item.synopsis || null
+        genres: item.genres ? item.genres.map(g => g.name) : []
       }));
       combinedResults.push(...mangaItems);
     }
@@ -62,19 +62,19 @@ const search = async (req, res) => {
         type: 'GAME',
         releaseDate: item.first_release_date ? new Date(item.first_release_date * 1000).toISOString() : null,
         coverImageUrl: item.cover?.url ? item.cover.url.replace('t_thumb', 't_cover_big') : null,
-        synopsis: item.summary || null
+        genres: item.genres ? item.genres.map(g => g.name) : []
       }));
       combinedResults.push(...gameItems);
     }
 
-    // Data Sanitization: Filter missing synopsis and release date
+    // Data Sanitization: Filter missing genres and release date
     combinedResults = combinedResults.filter(item => {
-      const hasSynopsis = item.synopsis && item.synopsis.trim() !== '';
+      const hasGenres = Array.isArray(item.genres) && item.genres.length > 0;
       const hasReleaseDate = item.releaseDate !== null;
-      return hasSynopsis && hasReleaseDate;
+      return hasGenres && hasReleaseDate;
     });
 
-    // Deduplication by title and type (keep longest synopsis)
+    // Deduplication by title and type (keep longest genres list)
     const uniqueResultsMap = new Map();
     for (const item of combinedResults) {
       const key = `${item.title.toLowerCase()}-${item.type}`;
@@ -82,7 +82,7 @@ const search = async (req, res) => {
         uniqueResultsMap.set(key, item);
       } else {
         const existingItem = uniqueResultsMap.get(key);
-        if (item.synopsis.length > existingItem.synopsis.length) {
+        if (item.genres.length > existingItem.genres.length) {
           uniqueResultsMap.set(key, item);
         }
       }
@@ -101,7 +101,7 @@ const search = async (req, res) => {
             where: { id: existingItem.id },
             data: {
               title: item.title,
-              synopsis: item.synopsis,
+              genres: item.genres,
               coverImageUrl: item.coverImageUrl,
               releaseDate: item.releaseDate
             }
@@ -112,7 +112,7 @@ const search = async (req, res) => {
               externalId: item.externalId,
               type: item.type,
               title: item.title,
-              synopsis: item.synopsis,
+              genres: item.genres,
               coverImageUrl: item.coverImageUrl,
               releaseDate: item.releaseDate
             }

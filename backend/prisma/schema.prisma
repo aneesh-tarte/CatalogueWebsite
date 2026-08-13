@@ -34,7 +34,7 @@ model MediaItem {
   externalId    String
   type          MediaType
   title         String
-  synopsis      String?
+  genres        String[]
   coverImageUrl String?
   releaseDate   DateTime?
   trackedBy     UserLibrary[]
