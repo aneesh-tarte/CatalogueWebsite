@@ -1,6 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const IGDBGameService = require('../services/IGDBGameService');
-const AniListService = require('../services/AniListService');
+const axios = require('axios');
 const prisma = new PrismaClient({});
 
 const search = async (req, res) => {
@@ -11,35 +10,123 @@ const search = async (req, res) => {
       return res.status(400).json({ error: 'Query (q) is required' });
     }
 
-    const cachedItemsPromise = prisma.mediaItem.findMany({
-      where: {
-        title: {
-          contains: q,
-          mode: 'insensitive'
-        }
-      },
-      take: 10
-    });
+    const igdbHeaders = {
+      'Client-ID': process.env.IGDB_CLIENT_ID,
+      'Authorization': `Bearer ${process.env.IGDB_TOKEN}`,
+      'Accept': 'application/json',
+    };
 
-    const [cachedItems, games, anime, manga] = await Promise.all([
-      cachedItemsPromise,
-      IGDBGameService.searchGames(q).catch(e => { console.error('IGDB Error:', e); return []; }),
-      AniListService.searchMedia(q, 'ANIME').catch(e => { console.error('AniList Anime Error:', e); return []; }),
-      AniListService.searchMedia(q, 'MANGA').catch(e => { console.error('AniList Manga Error:', e); return []; })
+    const [jikanAnimeRes, jikanMangaRes, igdbRes] = await Promise.allSettled([
+      axios.get(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(q)}&sfw=true`),
+      axios.get(`https://api.jikan.moe/v4/manga?q=${encodeURIComponent(q)}&sfw=true`),
+      axios.post(
+        'https://api.igdb.com/v4/games',
+        `search "${q}"; fields name, summary, cover.url, first_release_date; limit 20;`,
+        { headers: igdbHeaders }
+      )
     ]);
 
-    const combinedResults = [...cachedItems, ...games, ...anime, ...manga];
+    let combinedResults = [];
+
+    // Process Jikan Anime
+    if (jikanAnimeRes.status === 'fulfilled' && jikanAnimeRes.value.data && jikanAnimeRes.value.data.data) {
+      const animeItems = jikanAnimeRes.value.data.data.map(item => ({
+        externalId: String(item.mal_id),
+        title: item.title,
+        type: 'ANIME',
+        releaseDate: item.aired?.from ? new Date(item.aired.from).toISOString() : null,
+        coverImageUrl: item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || null,
+        synopsis: item.synopsis || null
+      }));
+      combinedResults.push(...animeItems);
+    }
+
+    // Process Jikan Manga
+    if (jikanMangaRes.status === 'fulfilled' && jikanMangaRes.value.data && jikanMangaRes.value.data.data) {
+      const mangaItems = jikanMangaRes.value.data.data.map(item => ({
+        externalId: String(item.mal_id),
+        title: item.title,
+        type: 'MANGA',
+        releaseDate: item.published?.from ? new Date(item.published.from).toISOString() : null,
+        coverImageUrl: item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || null,
+        synopsis: item.synopsis || null
+      }));
+      combinedResults.push(...mangaItems);
+    }
+
+    // Process IGDB Games
+    if (igdbRes.status === 'fulfilled' && igdbRes.value.data) {
+      const gameItems = igdbRes.value.data.map(item => ({
+        externalId: String(item.id),
+        title: item.name,
+        type: 'GAME',
+        releaseDate: item.first_release_date ? new Date(item.first_release_date * 1000).toISOString() : null,
+        coverImageUrl: item.cover?.url ? item.cover.url.replace('t_thumb', 't_cover_big') : null,
+        synopsis: item.summary || null
+      }));
+      combinedResults.push(...gameItems);
+    }
+
+    // Data Sanitization: Filter missing synopsis and release date
+    combinedResults = combinedResults.filter(item => {
+      const hasSynopsis = item.synopsis && item.synopsis.trim() !== '';
+      const hasReleaseDate = item.releaseDate !== null;
+      return hasSynopsis && hasReleaseDate;
+    });
+
+    // Deduplication by title and type (keep longest synopsis)
     const uniqueResultsMap = new Map();
     for (const item of combinedResults) {
-      const key = `${item.type}-${item.externalId}`;
+      const key = `${item.title.toLowerCase()}-${item.type}`;
       if (!uniqueResultsMap.has(key)) {
         uniqueResultsMap.set(key, item);
+      } else {
+        const existingItem = uniqueResultsMap.get(key);
+        if (item.synopsis.length > existingItem.synopsis.length) {
+          uniqueResultsMap.set(key, item);
+        }
       }
     }
-    
-    const finalResults = Array.from(uniqueResultsMap.values()).slice(0, 20);
 
-    res.json({ source: 'api', data: finalResults });
+    const finalResults = Array.from(uniqueResultsMap.values()).slice(0, 30);
+
+    // Save to DB to generate UUIDs for the frontend
+    const savedResults = await Promise.all(finalResults.map(async (item) => {
+      try {
+        const existingItem = await prisma.mediaItem.findFirst({
+          where: { externalId: item.externalId, type: item.type }
+        });
+        if (existingItem) {
+          return await prisma.mediaItem.update({
+            where: { id: existingItem.id },
+            data: {
+              title: item.title,
+              synopsis: item.synopsis,
+              coverImageUrl: item.coverImageUrl,
+              releaseDate: item.releaseDate
+            }
+          });
+        } else {
+          return await prisma.mediaItem.create({
+            data: {
+              externalId: item.externalId,
+              type: item.type,
+              title: item.title,
+              synopsis: item.synopsis,
+              coverImageUrl: item.coverImageUrl,
+              releaseDate: item.releaseDate
+            }
+          });
+        }
+      } catch (e) {
+        console.error('Failed to save item:', e);
+        return null;
+      }
+    }));
+
+    const validSavedResults = savedResults.filter(r => r !== null);
+
+    res.json({ source: 'api', data: validSavedResults });
   } catch (error) {
     console.error('Catalog search error:', error.stack);
     res.json({ source: 'api', data: [] });
