@@ -17,12 +17,12 @@ const search = async (req, res) => {
     };
 
     const [jikanAnimeRes, jikanMangaRes, igdbRes] = await Promise.allSettled([
-      axios.get(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(q)}&sfw=true`),
-      axios.get(`https://api.jikan.moe/v4/manga?q=${encodeURIComponent(q)}&sfw=true`),
+      axios.get(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(q)}&sfw=true`, { timeout: 3000 }),
+      axios.get(`https://api.jikan.moe/v4/manga?q=${encodeURIComponent(q)}&sfw=true`, { timeout: 3000 }),
       axios.post(
         'https://api.igdb.com/v4/games',
-        `search "${q}"; fields name, summary, cover.url, first_release_date; limit 20;`,
-        { headers: igdbHeaders }
+        `fields name, summary, cover.url, first_release_date; search "${q}"; limit 20;`,
+        { headers: igdbHeaders, timeout: 3000 }
       )
     ]);
 
