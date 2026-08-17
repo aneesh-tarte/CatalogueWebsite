@@ -356,64 +356,74 @@ document.addEventListener('DOMContentLoaded', () => {
                     const id = target.getAttribute('data-id');
                     const item = currentSearchResults.find(i => (i.id || i.apiId || i.externalId) == id);
                     if (!item) return;
-
-                    currentSelectedId = id;
-                    currentSelectedMedia = {
+                    
+                    const modalData = {
                         apiId: id,
                         title: item.title,
                         type: item.type || item.mediaType || 'ANIME',
-                        imageUrl: item.coverImageUrl || item.image || item.coverImage
+                        coverImageUrl: item.coverImageUrl || item.image || item.coverImage,
+                        releaseDate: item.releaseDate,
+                        genres: item.genres || []
                     };
-
-                    detailsImage.src = item.coverImageUrl || item.image || item.coverImage || '';
-                    detailsTitle.textContent = item.title || 'Unknown Title';
-                    detailsType.textContent = item.type || item.mediaType || 'Media';
-                    detailsRelease.textContent = item.releaseDate ? new Date(item.releaseDate).getFullYear() : 'Unknown Year';
-                    detailsGenres.innerHTML = (item.genres || []).map(g => `<span class="genre-badge">${g}</span>`).join('');
-
-                    detailsModal.classList.remove('hidden');
-                    searchResults.classList.add('hidden');
-
-                    // Fetch Reviews and Rating
-                    const detailsRating = document.getElementById('details-rating');
-                    const detailsReviewsList = document.getElementById('details-reviews-list');
-                    detailsRating.textContent = 'Loading...';
-                    detailsReviewsList.innerHTML = '<div class="loader">Loading reviews...</div>';
-
-                    try {
-                        const reviewsRes = await fetch(`${API_BASE}/catalog/${id}/reviews`);
-                        if (reviewsRes.ok) {
-                            const data = await reviewsRes.json();
-                            const averageScore = data.averageScore;
-                            const reviews = data.reviews;
-
-                            detailsRating.textContent = averageScore ? `${parseFloat(averageScore).toFixed(1)} / 100` : 'N/A';
-
-                            if (reviews && reviews.length > 0) {
-                                detailsReviewsList.innerHTML = reviews.map(r => `
-                                    <div class="review-card">
-                                        <div class="review-meta">${r.user?.email || 'Anonymous'} • Score: ${r.personalScore || 'N/A'}</div>
-                                        <div class="review-text">${r.reviewText}</div>
-                                    </div>
-                                `).join('');
-                            } else {
-                                detailsReviewsList.innerHTML = '<div class="search-item" style="border:none; padding:1rem 0;">No reviews yet. Be the first to review!</div>';
-                            }
-                        } else {
-                            detailsRating.textContent = 'N/A';
-                            detailsReviewsList.innerHTML = '<div class="search-item" style="border:none;">Failed to load reviews.</div>';
-                        }
-                    } catch (error) {
-                        console.error('Error fetching reviews:', error);
-                        detailsRating.textContent = 'N/A';
-                        detailsReviewsList.innerHTML = '<div class="search-item" style="border:none;">Error loading reviews.</div>';
-                    }
-
-                    fetchAndRenderComments(id);
+                    
+                    await openDetailsModal(modalData);
                 });
             });
         }
         searchResults.classList.remove('hidden');
+    }
+
+    async function openDetailsModal(item) {
+        currentSelectedId = item.apiId;
+        currentSelectedMedia = item;
+
+        detailsImage.src = item.coverImageUrl || '';
+        detailsTitle.textContent = item.title || 'Unknown Title';
+        detailsType.textContent = item.type || 'Media';
+        detailsRelease.textContent = item.releaseDate ? new Date(item.releaseDate).getFullYear() : 'Unknown Year';
+        detailsGenres.innerHTML = (item.genres || []).map(g => `<span class="genre-badge">${g}</span>`).join('');
+
+        detailsModal.classList.remove('hidden');
+        searchResults.classList.add('hidden');
+        
+        injectTrackingControls(item.apiId);
+
+        // Fetch Reviews and Rating
+        const detailsRating = document.getElementById('details-rating');
+        const detailsReviewsList = document.getElementById('details-reviews-list');
+        detailsRating.textContent = 'Loading...';
+        detailsReviewsList.innerHTML = '<div class="loader">Loading reviews...</div>';
+
+        try {
+            const reviewsRes = await fetch(`${API_BASE}/catalog/${item.apiId}/reviews`);
+            if (reviewsRes.ok) {
+                const data = await reviewsRes.json();
+                const averageScore = data.averageScore;
+                const reviews = data.reviews;
+
+                detailsRating.textContent = averageScore ? `${parseFloat(averageScore).toFixed(1)} / 100` : 'N/A';
+
+                if (reviews && reviews.length > 0) {
+                    detailsReviewsList.innerHTML = reviews.map(r => `
+                        <div class="review-card">
+                            <div class="review-meta">${r.user?.email || 'Anonymous'} • Score: ${r.personalScore || 'N/A'}</div>
+                            <div class="review-text">${r.reviewText}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    detailsReviewsList.innerHTML = '<div class="search-item" style="border:none; padding:1rem 0;">No reviews yet. Be the first to review!</div>';
+                }
+            } else {
+                detailsRating.textContent = 'N/A';
+                detailsReviewsList.innerHTML = '<div class="search-item" style="border:none;">Failed to load reviews.</div>';
+            }
+        } catch (error) {
+            console.error('Error fetching reviews:', error);
+            detailsRating.textContent = 'N/A';
+            detailsReviewsList.innerHTML = '<div class="search-item" style="border:none;">Error loading reviews.</div>';
+        }
+
+        fetchAndRenderComments(item.apiId);
     }
 
     // --- News Module ---
@@ -630,34 +640,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const displayCover = rawCover || '';
             const genresArr = media.genres || [];
             
-            // Reusing .genre-badge and .genres-container 
-            // from the details modal!
             const genresHtml = genresArr.length > 0 
                 ? `<div class="genres-container lib-genres">${genresArr.map(g => `<span class="genre-badge">${g}</span>`).join('')}</div>`
                 : '';
 
-            const dropdownHtml = `
-                <select class="status-dropdown" data-id="${item.id}">
-                    <option value="PLAN_TO_TRACK" ${item.status === 'PLAN_TO_TRACK' ? 'selected' : ''}>Plan to Track</option>
-                    <option value="IN_PROGRESS" ${item.status === 'IN_PROGRESS' ? 'selected' : ''}>In Progress</option>
-                    <option value="COMPLETED" ${item.status === 'COMPLETED' ? 'selected' : ''}>Completed</option>
-                    <option value="DROPPED" ${item.status === 'DROPPED' ? 'selected' : ''}>Dropped</option>
-                </select>
-            `;
-
-            let progressHtml = '';
-            if (media.type === 'ANIME' || media.type === 'MANGA') {
-                progressHtml = `
-                    <span>S:</span>
-                    <input type="number" class="season-input" value="${item.currentSeason || 1}" min="1" data-id="${item.id}">
-                    <span>Ep/Ch:</span>
-                    <input type="number" class="progress-input" value="${item.currentProgress || 0}" min="0" data-id="${item.id}">
-                    <button class="btn btn-primary btn-small update-progress-btn" data-id="${item.id}">Save</button>
-                `;
-            }
-
             return `
-            <div class="library-card" data-id="${item.id}">
+            <div class="library-card clickable-library-card" data-lib-id="${item.id}" style="cursor: pointer;">
                 ${displayCover ? `
                 <div class="library-card-image-wrapper">
                     <img src="${displayCover}" alt="${rawTitle}" class="library-card-image">
@@ -668,88 +656,122 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="library-card-content">
                     <h3 class="library-card-title">${rawTitle}</h3>
                     ${genresHtml}
-                    <div class="progress-control">
-                        ${dropdownHtml}
-                        ${progressHtml}
-                    </div>
                 </div>
             </div>
             `;
         }).join('');
 
-        // Attach listeners to new save buttons
-        document.querySelectorAll('.update-progress-btn').forEach(btn => {
-            btn.addEventListener('click', handleProgressUpdate);
-        });
-
-        // Attach listeners to status dropdowns
-        document.querySelectorAll('.status-dropdown').forEach(dropdown => {
-            dropdown.addEventListener('change', handleStatusMove);
-        });
-    }
-
-    async function handleStatusMove(e) {
-        const dropdown = e.target;
-        const itemId = dropdown.getAttribute('data-id');
-        const newStatus = dropdown.value;
-        dropdown.disabled = true;
-
-        try {
-            const response = await fetch(`${API_BASE}/library/${itemId}`, {
-                method: 'PUT',
-                headers: { 
-                    'Authorization': `Bearer ${authToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ status: newStatus })
+        // Attach listeners to click cards
+        document.querySelectorAll('.clickable-library-card').forEach(card => {
+            card.addEventListener('click', async (e) => {
+                const target = e.currentTarget;
+                const libId = target.getAttribute('data-lib-id');
+                const item = libraryData.find(i => i.id == libId);
+                if (!item) return;
+                
+                const media = item.mediaItem || item.catalogItemId || {};
+                
+                const modalData = {
+                    apiId: media.externalId,
+                    title: media.title,
+                    type: media.type,
+                    coverImageUrl: media.coverImageUrl,
+                    genres: media.genres,
+                    releaseDate: media.releaseDate
+                };
+                
+                await openDetailsModal(modalData);
             });
-
-            if (!response.ok) throw new Error('Failed to update status');
-            fetchLibrary(); // Re-fetch to move item to new tab
-        } catch (error) {
-            console.error('Status move error:', error);
-            alert('Failed to update status.');
-            dropdown.disabled = false;
-        }
+        });
     }
 
-    async function handleProgressUpdate(e) {
+    function injectTrackingControls(apiId) {
+        const container = document.getElementById('details-tracking-controls');
+        const libItem = libraryData.find(i => {
+            const media = i.mediaItem || i.catalogItemId || {};
+            return media.externalId == apiId;
+        });
+
+        if (!libItem) {
+            container.innerHTML = '';
+            return;
+        }
+
+        const media = libItem.mediaItem || libItem.catalogItemId || {};
+
+        const dropdownHtml = `
+            <select class="status-dropdown full-width" id="modal-status-dropdown" style="margin-top: 1rem; margin-bottom: 0.5rem; padding: 0.5rem;">
+                <option value="PLAN_TO_TRACK" ${libItem.status === 'PLAN_TO_TRACK' ? 'selected' : ''}>Plan to Track</option>
+                <option value="IN_PROGRESS" ${libItem.status === 'IN_PROGRESS' ? 'selected' : ''}>In Progress</option>
+                <option value="COMPLETED" ${libItem.status === 'COMPLETED' ? 'selected' : ''}>Completed</option>
+                <option value="DROPPED" ${libItem.status === 'DROPPED' ? 'selected' : ''}>Dropped</option>
+            </select>
+        `;
+
+        let progressHtml = '';
+        if (media.type === 'ANIME' || media.type === 'MANGA') {
+            progressHtml = `
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; align-items: center;">
+                    <span style="color: var(--text-secondary);">S:</span>
+                    <input type="number" id="modal-season-input" value="${libItem.currentSeason || 1}" min="1" style="width: 60px; padding: 0.25rem; border-radius: 0.25rem; background: rgba(15,23,42,0.6); border: 1px solid var(--border-color); color: var(--text-primary);">
+                    <span style="color: var(--text-secondary);">Ep/Ch:</span>
+                    <input type="number" id="modal-progress-input" value="${libItem.currentProgress || 0}" min="0" style="width: 60px; padding: 0.25rem; border-radius: 0.25rem; background: rgba(15,23,42,0.6); border: 1px solid var(--border-color); color: var(--text-primary);">
+                </div>
+            `;
+        } else {
+            progressHtml = `<div style="margin-bottom: 1rem;"></div>`; // spacing
+        }
+
+        container.innerHTML = `
+            <div style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                <h3 style="font-size: 1.1rem; color: var(--text-primary); margin-bottom: 0.5rem;">Tracking Controls</h3>
+                ${dropdownHtml}
+                ${progressHtml}
+                <button class="btn btn-primary full-width" id="modal-save-tracking-btn" data-lib-id="${libItem.id}">Save Tracking</button>
+            </div>
+        `;
+
+        document.getElementById('modal-save-tracking-btn').addEventListener('click', handleModalSaveTracking);
+    }
+
+    async function handleModalSaveTracking(e) {
         const btn = e.target;
-        const itemId = btn.getAttribute('data-id');
-        const progressInput = document.querySelector(`input.progress-input[data-id="${itemId}"]`);
-        const seasonInput = document.querySelector(`input.season-input[data-id="${itemId}"]`);
+        const libId = btn.getAttribute('data-lib-id');
+        const newStatus = document.getElementById('modal-status-dropdown').value;
+        const seasonInput = document.getElementById('modal-season-input');
+        const progressInput = document.getElementById('modal-progress-input');
         
-        const newProgress = progressInput ? parseInt(progressInput.value, 10) : undefined;
         const newSeason = seasonInput ? parseInt(seasonInput.value, 10) : undefined;
+        const newProgress = progressInput ? parseInt(progressInput.value, 10) : undefined;
 
         const originalText = btn.textContent;
-        btn.textContent = '...';
+        btn.textContent = 'Saving...';
         btn.disabled = true;
 
         try {
-            // PUT request to update progress and season
-            const response = await fetch(`${API_BASE}/library/${itemId}`, {
+            const response = await fetch(`${API_BASE}/library/${libId}`, {
                 method: 'PUT',
                 headers: { 
                     'Authorization': `Bearer ${authToken}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ 
+                    status: newStatus,
                     currentProgress: newProgress,
                     currentSeason: newSeason
                 })
             });
 
-            if (!response.ok) throw new Error('Failed to update progress');
+            if (!response.ok) throw new Error('Failed to save tracking');
             
             btn.textContent = 'Saved!';
             setTimeout(() => {
-                btn.textContent = originalText;
-                btn.disabled = false;
-            }, 2000);
+                detailsModal.classList.add('hidden');
+                fetchLibrary(); // Re-fetch to move item and update grid
+            }, 500);
         } catch (error) {
-            console.error('Update error:', error);
-            alert('Failed to update progress.');
+            console.error('Save tracking error:', error);
+            alert('Failed to save tracking.');
             btn.textContent = originalText;
             btn.disabled = false;
         }
