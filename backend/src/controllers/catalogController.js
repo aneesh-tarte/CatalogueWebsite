@@ -140,7 +140,14 @@ const search = async (req, res) => {
 
     const validSavedResults = savedResults.filter(r => r !== null);
 
-    res.json({ source: 'api', data: validSavedResults });
+    res.json({ 
+      source: 'api', 
+      data: validSavedResults,
+      debug_jikan_anime: jikanAnimeRes.status,
+      debug_jikan_manga: jikanMangaRes.status,
+      debug_igdb: igdbRes.status,
+      debug_igdb_reason: igdbRes.status === 'rejected' ? igdbRes.reason.message : null
+    });
   } catch (error) {
     console.error('Catalog search error:', error.stack);
     res.json({ source: 'api', data: [], debug_error: error.message, debug_stack: error.stack });
