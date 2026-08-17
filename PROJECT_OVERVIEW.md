@@ -53,7 +53,7 @@ The database schema is defined using Prisma. Here are the core models and their 
 
 - **MediaItem**
   - Represents a catalog item.
-  - Fields: `id` (UUID), `externalId`, `type` (Enum: `GAME`, `ANIME`, `MANGA`), `title`, `synopsis`, `coverImageUrl`, `releaseDate`.
+  - Fields: `id` (UUID), `externalId`, `type` (Enum: `GAME`, `ANIME`, `MANGA`), `title`, `genres` (String Array), `coverImageUrl`, `releaseDate`.
   - Relations: One-to-Many with `UserLibrary` and `Comment`.
 
 - **UserLibrary** (Join Table)
@@ -115,7 +115,7 @@ The frontend (`index.html`) is a Single Page Application (SPA) layout divided in
 - **Modals**:
   - **Auth Modal**: Provides the UI for Signing In and Registering. Connects to `/api/auth`.
   - **Details Modal**: Pops up when a user clicks on a media item (from search or library). It includes:
-    - **Media Info**: Cover image, title, type, release year, and synopsis.
+    - **Media Info**: Cover image, title, type, release year, and genres.
     - **Actions**: "Add to Library" and "Check News" buttons.
     - **Public Reviews**: Displays an aggregated Global Rating (out of 100) based on users' personal scores, alongside a feed of individual text reviews.
     - **Community Comments**: A dedicated section for threaded discussions. Users can post top-level comments and use inline forms to post nested replies to one another.
