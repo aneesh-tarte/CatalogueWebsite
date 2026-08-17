@@ -45,9 +45,9 @@ class NewsSyncJob {
           
           let imageUrl = null;
           if (item['media:content'] && item['media:content']['@_url']) {
-            imageUrl = item['media:content']['@_url'];
+            imageUrl = item['media:content']['@_url'].replace('http://', 'https://');
           } else if (item.enclosure && item.enclosure['@_url'] && item.enclosure['@_type']?.startsWith('image/')) {
-            imageUrl = item.enclosure['@_url'];
+            imageUrl = item.enclosure['@_url'].replace('http://', 'https://');
           }
 
           const existingArticle = await prisma.newsArticle.findFirst({
