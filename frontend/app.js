@@ -619,17 +619,45 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        libraryContent.innerHTML = filtered.map(item => `
+        libraryContent.innerHTML = filtered.map(item => {
+            const media = item.mediaItem || item.catalogItemId || {};
+            const rawTitle = media.title || 'Unknown Title';
+            let rawCover = media.coverImageUrl || '';
+            if (rawCover && rawCover.startsWith('http://')) {
+                rawCover = rawCover.replace('http://', 'https://');
+            }
+            
+            const displayCover = rawCover || '';
+            const genresArr = media.genres || [];
+            
+            // Reusing .genre-badge and .genres-container 
+            // from the details modal!
+            const genresHtml = genresArr.length > 0 
+                ? `<div class="genres-container lib-genres">${genresArr.map(g => `<span class="genre-badge">${g}</span>`).join('')}</div>`
+                : '';
+
+            return `
             <div class="library-card" data-id="${item.id}">
-                <h3>${item.mediaItem?.title || item.catalogItemId?.title || 'Unknown Title'}</h3>
-                <div class="progress-control">
-                    <span>Progress:</span>
-                    <input type="number" class="progress-input" value="${item.progress || 0}" min="0" max="${item.total || 9999}" data-id="${item.id}">
-                    <span>/ ${item.total || '?'}</span>
-                    <button class="btn btn-primary btn-small update-progress-btn" data-id="${item.id}">Save</button>
+                ${displayCover ? `
+                <div class="library-card-image-wrapper">
+                    <img src="${displayCover}" alt="${rawTitle}" class="library-card-image">
+                </div>
+                ` : `
+                <div class="library-card-image-wrapper empty-cover"></div>
+                `}
+                <div class="library-card-content">
+                    <h3 class="library-card-title">${rawTitle}</h3>
+                    ${genresHtml}
+                    <div class="progress-control">
+                        <span>Progress:</span>
+                        <input type="number" class="progress-input" value="${item.progress || 0}" min="0" max="${item.total || 9999}" data-id="${item.id}">
+                        <span>/ ${item.total || '?'}</span>
+                        <button class="btn btn-primary btn-small update-progress-btn" data-id="${item.id}">Save</button>
+                    </div>
                 </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
 
         // Attach listeners to new save buttons
         document.querySelectorAll('.update-progress-btn').forEach(btn => {
