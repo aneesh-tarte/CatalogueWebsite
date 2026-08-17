@@ -21,7 +21,7 @@ const search = async (req, res) => {
       axios.get(`https://api.jikan.moe/v4/manga?q=${encodeURIComponent(q)}&sfw=true`, { timeout: 3000 }),
       axios.post(
         'https://api.igdb.com/v4/games',
-        `fields name, genres.name, cover.url, first_release_date; search "${q}"; where category = (0, 8, 9) & genres != null; limit 20;`,
+        `fields name, genres.name, cover.url, first_release_date; search "${q}"; where genres != null; limit 20;`,
         { headers: igdbHeaders, timeout: 3000 }
       )
     ]);
