@@ -26,6 +26,13 @@ const search = async (req, res) => {
       )
     ]);
 
+    console.log('Jikan Anime Status:', jikanAnimeRes.status);
+    console.log('Jikan Manga Status:', jikanMangaRes.status);
+    console.log('IGDB Status:', igdbRes.status);
+    if (igdbRes.status === 'rejected') {
+      console.log('IGDB Reject Reason:', igdbRes.reason.message, igdbRes.reason.response?.data);
+    }
+
     let combinedResults = [];
 
     // Process Jikan Anime
@@ -136,7 +143,7 @@ const search = async (req, res) => {
     res.json({ source: 'api', data: validSavedResults });
   } catch (error) {
     console.error('Catalog search error:', error.stack);
-    res.json({ source: 'api', data: [] });
+    res.json({ source: 'api', data: [], debug_error: error.message, debug_stack: error.stack });
   }
 };
 
