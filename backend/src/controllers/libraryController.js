@@ -21,7 +21,7 @@ const updateLibrary = async (req, res) => {
   try {
     console.log(`[POST/PUT/PATCH] /api/library/update - Body:`, req.body);
     const { userId } = req.user;
-    const { mediaItemId, status, currentProgress, personalScore, reviewText } = req.body;
+    const { mediaItemId, status, currentProgress, currentSeason, personalScore, reviewText } = req.body;
 
     if (!mediaItemId || !status) {
       return res.status(400).json({ error: 'mediaItemId and status are required' });
@@ -37,6 +37,7 @@ const updateLibrary = async (req, res) => {
       update: {
         status,
         currentProgress: currentProgress !== undefined ? currentProgress : undefined,
+        currentSeason: currentSeason !== undefined ? currentSeason : undefined,
         personalScore: personalScore !== undefined ? personalScore : undefined,
         reviewText: reviewText !== undefined ? reviewText : undefined
       },
@@ -45,6 +46,7 @@ const updateLibrary = async (req, res) => {
         mediaItemId,
         status,
         currentProgress: currentProgress || 0,
+        currentSeason: currentSeason || null,
         personalScore,
         reviewText
       }
@@ -53,7 +55,29 @@ const updateLibrary = async (req, res) => {
     res.json({ data: libraryEntry });
   } catch (error) {
     console.error('Library update error:', error.stack);
-    console.error("Route /api/library/update Error:", error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+const updateLibraryById = async (req, res) => {
+  try {
+    const { userId } = req.user;
+    const { id } = req.params;
+    const { status, currentProgress, currentSeason } = req.body;
+
+    const updated = await prisma.userLibrary.updateMany({
+      where: { id: id, userId: userId },
+      data: {
+        status: status !== undefined ? status : undefined,
+        currentProgress: currentProgress !== undefined ? currentProgress : undefined,
+        currentSeason: currentSeason !== undefined ? currentSeason : undefined
+      }
+    });
+
+    if (updated.count === 0) return res.status(404).json({ error: 'Not found or not authorized' });
+    res.json({ message: 'Updated' });
+  } catch (error) {
+    console.error('Library updateById error:', error.stack);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -122,4 +146,4 @@ const addLibraryItem = async (req, res) => {
   }
 };
 
-module.exports = { getLibrary, updateLibrary, deleteLibraryItem, addLibraryItem };
+module.exports = { getLibrary, updateLibrary, updateLibraryById, deleteLibraryItem, addLibraryItem };

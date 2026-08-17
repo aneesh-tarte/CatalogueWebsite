@@ -56,6 +56,7 @@ model UserLibrary {
   userId          String
   mediaItemId     String
   status          TrackStatus
+  currentSeason   Int?
   currentProgress Int         @default(0)
   personalScore   Int?
   reviewText      String?

@@ -636,6 +636,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? `<div class="genres-container lib-genres">${genresArr.map(g => `<span class="genre-badge">${g}</span>`).join('')}</div>`
                 : '';
 
+            const dropdownHtml = `
+                <select class="status-dropdown" data-id="${item.id}">
+                    <option value="PLAN_TO_TRACK" ${item.status === 'PLAN_TO_TRACK' ? 'selected' : ''}>Plan to Track</option>
+                    <option value="IN_PROGRESS" ${item.status === 'IN_PROGRESS' ? 'selected' : ''}>In Progress</option>
+                    <option value="COMPLETED" ${item.status === 'COMPLETED' ? 'selected' : ''}>Completed</option>
+                    <option value="DROPPED" ${item.status === 'DROPPED' ? 'selected' : ''}>Dropped</option>
+                </select>
+            `;
+
+            let progressHtml = '';
+            if (media.type === 'ANIME' || media.type === 'MANGA') {
+                progressHtml = `
+                    <span>S:</span>
+                    <input type="number" class="season-input" value="${item.currentSeason || 1}" min="1" data-id="${item.id}">
+                    <span>Ep/Ch:</span>
+                    <input type="number" class="progress-input" value="${item.currentProgress || 0}" min="0" data-id="${item.id}">
+                    <button class="btn btn-primary btn-small update-progress-btn" data-id="${item.id}">Save</button>
+                `;
+            }
+
             return `
             <div class="library-card" data-id="${item.id}">
                 ${displayCover ? `
@@ -649,10 +669,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h3 class="library-card-title">${rawTitle}</h3>
                     ${genresHtml}
                     <div class="progress-control">
-                        <span>Progress:</span>
-                        <input type="number" class="progress-input" value="${item.progress || 0}" min="0" max="${item.total || 9999}" data-id="${item.id}">
-                        <span>/ ${item.total || '?'}</span>
-                        <button class="btn btn-primary btn-small update-progress-btn" data-id="${item.id}">Save</button>
+                        ${dropdownHtml}
+                        ${progressHtml}
                     </div>
                 </div>
             </div>
@@ -663,47 +681,80 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.update-progress-btn').forEach(btn => {
             btn.addEventListener('click', handleProgressUpdate);
         });
+
+        // Attach listeners to status dropdowns
+        document.querySelectorAll('.status-dropdown').forEach(dropdown => {
+            dropdown.addEventListener('change', handleStatusMove);
+        });
+    }
+
+    async function handleStatusMove(e) {
+        const dropdown = e.target;
+        const itemId = dropdown.getAttribute('data-id');
+        const newStatus = dropdown.value;
+        dropdown.disabled = true;
+
+        try {
+            const response = await fetch(`${API_BASE}/library/${itemId}`, {
+                method: 'PUT',
+                headers: { 
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            if (!response.ok) throw new Error('Failed to update status');
+            fetchLibrary(); // Re-fetch to move item to new tab
+        } catch (error) {
+            console.error('Status move error:', error);
+            alert('Failed to update status.');
+            dropdown.disabled = false;
+        }
     }
 
     async function handleProgressUpdate(e) {
         const btn = e.target;
         const itemId = btn.getAttribute('data-id');
-        const input = document.querySelector(`input.progress-input[data-id="${itemId}"]`);
-        const newProgress = parseInt(input.value, 10);
+        const progressInput = document.querySelector(`input.progress-input[data-id="${itemId}"]`);
+        const seasonInput = document.querySelector(`input.season-input[data-id="${itemId}"]`);
+        
+        const newProgress = progressInput ? parseInt(progressInput.value, 10) : undefined;
+        const newSeason = seasonInput ? parseInt(seasonInput.value, 10) : undefined;
 
         const originalText = btn.textContent;
         btn.textContent = '...';
         btn.disabled = true;
 
         try {
-            // PATCH request to update progress
-            const response = await fetch(`${API_BASE}/library/update`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}`
+            // PUT request to update progress and season
+            const response = await fetch(`${API_BASE}/library/${itemId}`, {
+                method: 'PUT',
+                headers: { 
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    libraryItemId: itemId,
-                    updates: { progress: newProgress }
+                body: JSON.stringify({ 
+                    currentProgress: newProgress,
+                    currentSeason: newSeason
                 })
             });
 
-            if (!response.ok) throw new Error('Update failed');
-
-            // Update local state
-            const item = libraryData.find(i => i.id === itemId || i._id === itemId);
-            if (item) item.progress = newProgress;
-
+            if (!response.ok) throw new Error('Failed to update progress');
+            
             btn.textContent = 'Saved!';
-            setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
-
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }, 2000);
         } catch (error) {
-            console.error('Progress update error:', error);
-            btn.textContent = 'Error';
-            setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
+            console.error('Update error:', error);
+            alert('Failed to update progress.');
+            btn.textContent = originalText;
+            btn.disabled = false;
         }
     }
+
 
     async function fetchAndRenderComments(id) {
         const commentsList = document.getElementById('details-comments-list');
