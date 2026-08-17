@@ -134,11 +134,12 @@ const search = async (req, res) => {
         }
       } catch (e) {
         console.error('Failed to save item:', e);
-        return null;
+        return { error: e.message };
       }
     }));
 
-    const validSavedResults = savedResults.filter(r => r !== null);
+    const validSavedResults = savedResults.filter(r => r && !r.error);
+    const dbErrors = savedResults.filter(r => r && r.error).map(r => r.error);
 
     res.json({ 
       source: 'api', 
@@ -146,7 +147,8 @@ const search = async (req, res) => {
       debug_jikan_anime: jikanAnimeRes.status,
       debug_jikan_manga: jikanMangaRes.status,
       debug_igdb: igdbRes.status,
-      debug_igdb_reason: igdbRes.status === 'rejected' ? igdbRes.reason.message : null
+      debug_igdb_reason: igdbRes.status === 'rejected' ? igdbRes.reason.message : null,
+      debug_db_errors: dbErrors
     });
   } catch (error) {
     console.error('Catalog search error:', error.stack);
