@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const axios = require('axios');
 const prisma = new PrismaClient({});
+const redisClient = require('../services/redisClient');
 
 const search = async (req, res) => {
   try {
@@ -15,6 +16,23 @@ const search = async (req, res) => {
       'Authorization': `Bearer ${process.env.IGDB_TOKEN}`,
       'Accept': 'application/json',
     };
+
+    const cacheKey = `search:${q.toLowerCase()}`;
+
+    // The Cache Check
+    try {
+      if (redisClient.isReady) {
+        const cachedData = await redisClient.get(cacheKey);
+        if (cachedData) {
+          console.log(`[Cache Hit] /api/catalog/search - Query: q=${q}`);
+          const parsed = JSON.parse(cachedData);
+          parsed.source = 'cache';
+          return res.status(200).json(parsed);
+        }
+      }
+    } catch (err) {
+      console.warn('Redis cache check failed, gracefully bypassing:', err.message);
+    }
 
     const [jikanAnimeRes, jikanMangaRes, igdbRes] = await Promise.allSettled([
       axios.get(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(q)}&sfw=true`, { timeout: 3000 }),
@@ -141,7 +159,7 @@ const search = async (req, res) => {
     const validSavedResults = savedResults.filter(r => r && !r.error);
     const dbErrors = savedResults.filter(r => r && r.error).map(r => r.error);
 
-    res.json({ 
+    const responsePayload = { 
       source: 'api', 
       data: validSavedResults,
       debug_jikan_anime: jikanAnimeRes.status,
@@ -149,7 +167,18 @@ const search = async (req, res) => {
       debug_igdb: igdbRes.status,
       debug_igdb_reason: igdbRes.status === 'rejected' ? igdbRes.reason.message : null,
       debug_db_errors: dbErrors
-    });
+    };
+
+    // The Cache Set
+    try {
+      if (redisClient.isReady) {
+        await redisClient.setEx(cacheKey, 3600, JSON.stringify(responsePayload));
+      }
+    } catch (err) {
+      console.warn('Redis cache set failed:', err.message);
+    }
+
+    res.json(responsePayload);
   } catch (error) {
     console.error('Catalog search error:', error.stack);
     res.json({ source: 'api', data: [], debug_error: error.message, debug_stack: error.stack });
