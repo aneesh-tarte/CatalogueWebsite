@@ -58,11 +58,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // State
     let currentTab = 'In Progress';
-    let libraryData = []; // Will hold the user's library
-    let authToken = localStorage.getItem('token') || null;
     let currentSearchResults = [];
-    let currentSelectedMedia = null;
+    let isLogin = true;
+    let authToken = localStorage.getItem('token');
+    let libraryData = [];
     let currentSelectedId = null;
+    let currentSelectedMedia = null;
+
+    // Toast Utility
+    window.showToast = function(message, type = 'info') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `<span>${message}</span>`;
+        
+        container.appendChild(toast);
+        
+        // Trigger reflow to apply transition
+        toast.offsetHeight;
+        toast.classList.add('toast-show');
+
+        setTimeout(() => {
+            toast.classList.remove('toast-show');
+            toast.classList.add('toast-hide');
+            toast.addEventListener('transitionend', () => {
+                if (toast.parentNode === container) {
+                    container.removeChild(toast);
+                }
+            });
+        }, 3500);
+    };
 
     // Initialize
     init();
@@ -245,14 +272,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (activeTabBtn) activeTabBtn.classList.add('active');
 
                     await fetchLibrary();
+                    showToast('Saved successfully!', 'success');
                 } else {
                     const errData = await response.json().catch(() => ({}));
                     console.error('Failed to add item:', errData);
-                    alert("Failed to add item: " + (errData.error || response.statusText));
+                    showToast('Error saving item.', 'error');
                 }
             } catch (error) {
                 console.error('Error adding item:', error);
-                alert("Network error while adding item.");
+                showToast('Error saving item.', 'error');
             } finally {
                 detailsAddBtn.textContent = originalText;
                 detailsAddBtn.disabled = false;
@@ -294,11 +322,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     newCommentInput.value = '';
                     fetchAndRenderComments(currentSelectedId);
                 } else {
-                    alert('Failed to post comment.');
+                    showToast('Failed to post comment.', 'error');
                 }
             } catch (err) {
                 console.error(err);
-                alert('Error posting comment.');
+                showToast('Error posting comment.', 'error');
             } finally {
                 submitCommentBtn.textContent = originalText;
                 submitCommentBtn.disabled = false;
@@ -763,13 +791,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('Failed to save tracking');
             
             btn.textContent = 'Saved!';
+            showToast('Saved successfully!', 'success');
             setTimeout(() => {
                 detailsModal.classList.add('hidden');
                 fetchLibrary(); // Re-fetch to move item and update grid
             }, 500);
         } catch (error) {
             console.error('Save tracking error:', error);
-            alert('Failed to save tracking.');
+            showToast('Failed to save tracking.', 'error');
             btn.textContent = originalText;
             btn.disabled = false;
         }
@@ -837,13 +866,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 if (postRes.ok) {
                                     fetchAndRenderComments(currentSelectedId);
                                 } else {
-                                    alert('Failed to post reply.');
+                                    showToast('Failed to post reply.', 'error');
                                     replyBtn.textContent = 'Reply';
                                     replyBtn.disabled = false;
                                 }
                             } catch (err) {
                                 console.error(err);
-                                alert('Error posting reply.');
+                                showToast('Error posting reply.', 'error');
                                 replyBtn.textContent = 'Reply';
                                 replyBtn.disabled = false;
                             }
