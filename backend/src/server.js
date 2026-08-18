@@ -4,6 +4,8 @@ const cors = require('cors');
 const http = require('http');
 const routes = require('./routes');
 const NewsSyncJob = require('./services/NewsSyncJob');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./utils/swagger');
 
 const app = express();
 const server = http.createServer(app);
@@ -24,6 +26,9 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use('/api', routes);
+
+// Mount Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 NewsSyncJob.start();
 
