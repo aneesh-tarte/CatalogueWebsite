@@ -550,9 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const content = chatInput.value.trim();
             if (!content) return;
 
-            if (!sessionUsername) {
-                sessionUsername = prompt("Enter a username for the chat:") || 'Guest';
-            }
+            sessionUsername = localStorage.getItem('username') || 'Guest';
 
             const msgObj = {
                 username: sessionUsername,
