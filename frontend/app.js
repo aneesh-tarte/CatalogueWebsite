@@ -383,7 +383,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderSearchResults(results) {
         currentSearchResults = results || [];
         if (!results || !Array.isArray(results) || results.length === 0) {
-            searchResults.innerHTML = `<div class="search-item">No results found.</div>`;
+            searchResults.innerHTML = `
+                <div class="empty-state-container" style="margin: 1rem;">
+                    <div class="empty-state-icon" style="font-size: 2rem;">🔍</div>
+                    <h3 style="margin: 0;">No results found</h3>
+                    <p style="margin-top: 0.5rem; font-size: 0.9rem;">Try adjusting your search terms.</p>
+                </div>
+            `;
         } else {
             // Assuming results have { title, mediaType, year }
             searchResults.innerHTML = results.slice(0, 5).map(item => `
@@ -458,7 +464,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     `).join('');
                 } else {
-                    detailsReviewsList.innerHTML = '<div class="search-item" style="border:none; padding:1rem 0;">No reviews yet. Be the first to review!</div>';
+                    detailsReviewsList.innerHTML = `
+                        <div class="empty-state-container" style="padding: 2rem 1rem;">
+                            <div class="empty-state-icon" style="font-size: 2rem;">⭐</div>
+                            <h3 style="margin: 0;">No reviews yet</h3>
+                            <p style="margin-top: 0.5rem; font-size: 0.9rem;">Be the first to review!</p>
+                        </div>
+                    `;
                 }
             } else {
                 detailsRating.textContent = 'N/A';
@@ -680,7 +692,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const filtered = libraryData.filter(item => item.status === mappedStatus || item.trackStatus === currentTab);
 
         if (filtered.length === 0) {
-            libraryContent.innerHTML = `<div class="loader">No items in ${currentTab}.</div>`;
+            libraryContent.innerHTML = `
+                <div class="empty-state-container">
+                    <div class="empty-state-icon">📚</div>
+                    <h2>Nothing here yet!</h2>
+                    <p>Start searching the catalog to build your library.</p>
+                    <button class="empty-state-btn" onclick="document.getElementById('global-search').focus()">Explore Catalog</button>
+                </div>
+            `;
             return;
         }
 
@@ -845,7 +864,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const comments = data.data || [];
 
                 if (comments.length === 0) {
-                    commentsList.innerHTML = '<div class="search-item" style="border:none;">No comments yet. Start the conversation!</div>';
+                    commentsList.innerHTML = `
+                        <div class="empty-state-container" style="padding: 2rem 1rem;">
+                            <div class="empty-state-icon" style="font-size: 2rem;">💬</div>
+                            <h3 style="margin: 0;">No comments yet</h3>
+                            <p style="margin-top: 0.5rem; font-size: 0.9rem;">Start the conversation!</p>
+                        </div>
+                    `;
                     return;
                 }
 
