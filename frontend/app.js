@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Nav & Profile Elements
     const appNav = document.getElementById('app-nav');
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
     const navDashboard = document.getElementById('nav-dashboard');
     const navProfile = document.getElementById('nav-profile');
     const dashboardView = document.getElementById('dashboard-view');
@@ -168,6 +169,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.target.classList.add('active');
                 currentTab = e.target.getAttribute('data-status');
                 renderLibrary();
+            });
+        });
+
+        // Mobile Menu Toggle
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                appNav.classList.toggle('show-menu');
+            });
+        }
+
+        // Close mobile menu when a nav link is clicked
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    appNav.classList.remove('show-menu');
+                }
             });
         });
 
