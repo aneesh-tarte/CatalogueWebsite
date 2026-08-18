@@ -101,6 +101,16 @@ document.addEventListener('DOMContentLoaded', () => {
             authBtn.textContent = 'Sign Out';
             appNav.classList.remove('hidden');
             fetchLibrary();
+            
+            // Ensure username is correctly populated in local storage on load
+            fetch(`${API_BASE}/auth/profile`, { headers: { 'Authorization': `Bearer ${authToken}` } })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.user) {
+                        localStorage.setItem('username', data.user.username || data.user.email.split('@')[0]);
+                    }
+                })
+                .catch(err => console.error('Error syncing profile identity:', err));
         } else {
             libraryContent.innerHTML = `<div class="loader">Please Sign In to view your library.</div>`;
             appNav.classList.add('hidden');
@@ -214,6 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 authToken = data.token;
                 localStorage.setItem('token', authToken);
+                localStorage.setItem('username', data.username || (data.user && data.user.email ? data.user.email.split('@')[0] : 'Guest'));
                 closeAuthModalFunc();
                 authBtn.textContent = 'Sign Out';
                 appNav.classList.remove('hidden');

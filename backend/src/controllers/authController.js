@@ -22,7 +22,7 @@ const register = async (req, res) => {
     });
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '7d' });
-    res.status(201).json({ token, user: { id: user.id, email: user.email } });
+    res.status(201).json({ token, username: user.username, user: { id: user.id, email: user.email } });
   } catch (error) {
     console.error('Registration error:', error.stack);
     console.error("Route /api/auth/register Error:", error);
@@ -49,7 +49,7 @@ const login = async (req, res) => {
     }
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '7d' });
-    res.json({ token, user: { id: user.id, email: user.email } });
+    res.json({ token, username: user.username, user: { id: user.id, email: user.email } });
   } catch (error) {
     console.error('Login error:', error.stack);
     console.error("Route /api/auth/login Error:", error);
