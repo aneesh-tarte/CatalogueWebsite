@@ -140,8 +140,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Show loading state while waiting for debounce and fetch
-            searchResults.innerHTML = `<div class="search-item">Searching...</div>`;
+            // Show skeleton loading state while waiting for debounce and fetch
+            searchResults.innerHTML = Array(4).fill(`
+                <div class="skeleton-search-item">
+                    <div class="skeleton skeleton-search-thumbnail"></div>
+                    <div style="flex:1; margin-top: 5px;">
+                        <div class="skeleton skeleton-text"></div>
+                        <div class="skeleton skeleton-text-small"></div>
+                    </div>
+                </div>`).join('');
             searchResults.classList.remove('hidden');
 
             debouncedSearch(query);
@@ -369,6 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Search error:', error);
             searchResults.innerHTML = `<div class="search-item">Error fetching results.</div>`;
             searchResults.classList.remove('hidden');
+            showToast('Error fetching search results.', 'error');
         }
     }
 
@@ -467,6 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- News Module ---
     async function fetchNews() {
+        newsCarousel.innerHTML = Array(4).fill('<div class="skeleton skeleton-news"></div>').join('');
         try {
             // Using a placeholder API route, implement the actual backend if it exists
             const response = await fetch(`${API_BASE}/news`);
@@ -479,6 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderNews(result.data);
         } catch (error) {
             console.warn('News endpoint not found, using fallback.');
+            showToast('Failed to load live news. Using fallback.', 'error');
             renderMockNews();
         }
     }
@@ -619,6 +629,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Library Module ---
     async function fetchLibrary() {
+        libraryContent.innerHTML = '<div class="library-grid">' + Array(4).fill(`
+            <div class="skeleton-card" style="flex-direction: column;">
+                <div class="skeleton skeleton-thumbnail" style="width: 100%; height: 250px;"></div>
+                <div class="skeleton skeleton-text"></div>
+                <div class="skeleton skeleton-text-small"></div>
+            </div>`).join('') + '</div>';
+
         try {
             const response = await fetch(`${API_BASE}/library`, {
                 headers: { 'Authorization': `Bearer ${authToken}` }
@@ -639,6 +656,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 libraryContent.innerHTML = `<div class="loader">Session expired. Please sign in again.</div>`;
             } else {
                 libraryContent.innerHTML = `<div class="loader">Error loading library. Using mock data for demo.</div>`;
+                showToast('Failed to load tracking library. Using mock data.', 'error');
                 // Load mock data for UI demonstration purposes
                 libraryData = [
                     { id: '1', catalogItemId: { title: 'Attack on Titan' }, trackStatus: 'In Progress', progress: 85, total: 87 },
