@@ -1,4 +1,5 @@
 const cron = require('node-cron');
+const { performance } = require('perf_hooks');
 const axios = require('axios');
 const { XMLParser } = require('fast-xml-parser');
 const { PrismaClient } = require('@prisma/client');
@@ -27,11 +28,15 @@ class NewsSyncJob {
 
   static async runSync() {
     console.log('Starting NewsSyncJob...');
+    const startTime = performance.now();
+    let totalArticlesProcessed = 0;
+
     for (const feed of RSS_FEEDS) {
       const data = await this.fetchAndParseRSS(feed.url);
       if (!data || !data.rss || !data.rss.channel || !data.rss.channel.item) continue;
       
       const items = Array.isArray(data.rss.channel.item) ? data.rss.channel.item : [data.rss.channel.item];
+      totalArticlesProcessed += items.length;
       
       for (const item of items) {
         try {
@@ -70,6 +75,12 @@ class NewsSyncJob {
         }
       }
     }
+    const durationMs = performance.now() - startTime;
+    const durationSec = durationMs / 1000;
+    const itemsPerSec = durationSec > 0 ? totalArticlesProcessed / durationSec : 0;
+    
+    console.log(`[Cron Profiling] Processed ${totalArticlesProcessed} articles in ${durationMs.toFixed(2)}ms`);
+    console.log(`[Cron Profiling] Speed: ${itemsPerSec.toFixed(2)} articles/second`);
     console.log('NewsSyncJob completed.');
   }
 

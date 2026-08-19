@@ -1,4 +1,5 @@
 require('dotenv').config();
+const { performance } = require('perf_hooks');
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
@@ -25,6 +26,19 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
+
+// API Profiling Middleware
+app.use((req, res, next) => {
+  const start = performance.now();
+  res.on('finish', () => {
+    const duration = performance.now() - start;
+    if (req.originalUrl.startsWith('/api/catalog/search') || req.originalUrl.startsWith('/api/library')) {
+      console.log(`[API Profiling] ${req.method} ${req.originalUrl} - ${duration.toFixed(2)} ms`);
+    }
+  });
+  next();
+});
+
 app.use('/api', routes);
 
 // Mount Swagger UI

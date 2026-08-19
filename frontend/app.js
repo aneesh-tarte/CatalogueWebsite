@@ -92,6 +92,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3500);
     };
 
+    function handleLogout(showToastMsg = false) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        authToken = null;
+        authBtn.textContent = 'Sign In';
+        libraryData = [];
+        libraryContent.innerHTML = `<div class="loader">Please Sign In to view your library.</div>`;
+        appNav.classList.add('hidden');
+        try { switchToView('dashboard'); } catch(e) {}
+        if (showToastMsg) {
+            showToast('Session expired. Please sign in again.', 'warning');
+        }
+    }
+
     // Initialize
     init();
 
@@ -105,9 +119,15 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Ensure username is correctly populated in local storage on load
             fetch(`${API_BASE}/auth/profile`, { headers: { 'Authorization': `Bearer ${authToken}` } })
-                .then(res => res.json())
+                .then(res => {
+                    if (res.status === 401) {
+                        handleLogout(true);
+                        throw new Error('Unauthorized');
+                    }
+                    return res.json();
+                })
                 .then(data => {
-                    if (data.user) {
+                    if (data && data.user) {
                         localStorage.setItem('username', data.user.username || data.user.email.split('@')[0]);
                     }
                 })
@@ -191,13 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Auth Button
         authBtn.addEventListener('click', () => {
             if (authToken) {
-                localStorage.removeItem('token');
-                authToken = null;
-                authBtn.textContent = 'Sign In';
-                libraryData = [];
-                libraryContent.innerHTML = `<div class="loader">Please Sign In to view your library.</div>`;
-                appNav.classList.add('hidden');
-                switchToView('dashboard');
+                handleLogout();
             } else {
                 openAuthModal();
             }
@@ -607,10 +621,19 @@ document.addEventListener('DOMContentLoaded', () => {
             .subscribe();
 
         function appendChatMessage(msg) {
+            // Only measure if timestamp is a number (our new format) and not from self
+            if (typeof msg.timestamp === 'number' && msg.username !== sessionUsername) {
+                const latency = Date.now() - msg.timestamp;
+                console.log(`[Supabase Profiling] Websocket latency: ${latency}ms`);
+            }
+
             const isSelf = msg.username === sessionUsername;
             const bubble = document.createElement('div');
             bubble.className = `chat-message ${isSelf ? 'self' : ''}`;
-            const timeString = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            // Handle both old ISO string format and new epoch format
+            const dateObj = typeof msg.timestamp === 'number' ? new Date(msg.timestamp) : new Date(msg.timestamp || Date.now());
+            const timeString = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
             bubble.innerHTML = `
                 <div class="meta">
@@ -633,7 +656,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const msgObj = {
                 username: sessionUsername,
                 content: content,
-                timestamp: new Date().toISOString()
+                timestamp: Date.now()
             };
 
             // Broadcast instantly to others
@@ -682,7 +705,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Library error:', error);
             if (error.message === 'Unauthorized') {
-                libraryContent.innerHTML = `<div class="loader">Session expired. Please sign in again.</div>`;
+                handleLogout(true);
             } else {
                 libraryContent.innerHTML = `<div class="loader">Error loading library. Using mock data for demo.</div>`;
                 showToast('Failed to load tracking library. Using mock data.', 'error');

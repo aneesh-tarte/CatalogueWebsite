@@ -1,5 +1,15 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient({});
+const prisma = new PrismaClient({
+  log: [
+    { emit: 'event', level: 'query' },
+  ],
+});
+
+prisma.$on('query', (e) => {
+  if (e.query.includes('"UserLibrary"') || e.query.includes('"Comment"')) {
+    console.log(`[Prisma Profiling] Query Duration: ${e.duration}ms`);
+  }
+});
 
 const getLibrary = async (req, res) => {
   try {
