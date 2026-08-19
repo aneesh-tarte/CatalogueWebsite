@@ -5,7 +5,8 @@ const NewsSyncJob = require('../services/NewsSyncJob');
 const getNews = async (req, res) => {
   try {
     console.log(`[GET] /api/news`);
-    await NewsSyncJob.runSync();
+    // Removed await NewsSyncJob.runSync(); to prevent blocking the API with external RSS fetching. 
+    // The background cron job in server.js will handle fetching the news hourly.
     const news = await prisma.newsArticle.findMany({
       orderBy: { publishedAt: 'desc' },
       take: 50
